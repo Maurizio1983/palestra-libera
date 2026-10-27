@@ -1246,8 +1246,78 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
     };
   }
 
+
+  /* ---------------------------------------------------------- stretching */
+  function stretchGuide(profile, plan, run) {
+    const p = normalize(profile);
+    const gentle = p.caution || p.exp === 'sedentario';
+    const L = p.limits;
+    const has = function (x) { return L.indexOf(x) >= 0; };
+    const kinds = plan ? plan.sessions.map(function (s) { return s.kind; }) : [];
+    const lower = kinds.some(function (k) { return /^(LOWER|FULL)/.test(k); }) || (run && run.weeks && run.weeks.length > 0);
+    const upper = kinds.some(function (k) { return /^(UPPER|FULL)/.test(k); });
+    const hasRun = !!(run && run.weeks && run.weeks.length && !run.walkOnly);
+    const walk = !!(run && run.walkOnly);
+    const hasSkill = plan ? plan.sessions.some(function (s) { return s.skills.length; }) : false;
+    const S = function (name, detail) { return { name: name, detail: detail }; };
+    const hold = gentle ? '20-30 secondi' : '30 secondi';
+    const lowerItems = [];
+    if (!has('ginocchia')) lowerItems.push(S('Quadricipiti in piedi', hold + ' per lato, ginocchia vicine, bacino leggermente in avanti'));
+    lowerItems.push(S('Femorali', hold + ' per lato: gamba tesa sul rialzo o a terra da seduto, busto lungo e schiena dritta'));
+    lowerItems.push(S('Flessori dell\'anca', hold + ' per lato: affondo basso con il bacino che spinge in avanti, senza inarcare la schiena'));
+    lowerItems.push(S('Polpacci al muro', hold + ' per lato: tallone a terra, gamba posteriore tesa'));
+    const upperItems = [];
+    if (!has('spalle')) upperItems.push(S('Pettorali al muro', hold + ' per lato, braccio a 90 gradi, senza forzare'));
+    upperItems.push(S('Dorsali in posizione del bambino', hold + ', braccia avanti, respiri lenti'));
+    if (!has('polsi')) upperItems.push(S('Avambracci e polsi', hold + ' per lato, palmo in alto poi in basso, tensione lieve'));
+    upperItems.push(S('Tricipiti e spalle', hold + ' per lato, gomito sopra la testa, spinta dolce con l\'altra mano'));
+    const mobItems = [S('Gatto-cammello', '8 ripetizioni lente, senza forzare'), S('Rotazioni toraciche in quadrupedia', '6 per lato')];
+    if (!has('schiena')) mobItems.push(S('Ginocchia al petto da sdraiato', hold + ', schiena appoggiata'));
+    const restDay = []
+      .concat(mobItems)
+      .concat(lower ? lowerItems : [])
+      .concat(upper ? upperItems : []);
+    const postWork = [];
+    if (lower) lowerItems.slice(0, 3).forEach(function (x) { postWork.push(x); });
+    if (upper) upperItems.slice(0, 2).forEach(function (x) { postWork.push(x); });
+    const postRun = (hasRun || walk) ? [
+      S('Polpacci al muro', hold + ' per lato'),
+      S('Quadricipiti in piedi', hold + ' per lato').name && !has('ginocchia') ? S('Quadricipiti in piedi', hold + ' per lato') : S('Glutei da sdraiato', hold + ' per lato: caviglia sul ginocchio opposto, tira verso il petto'),
+      S('Femorali', hold + ' per lato'),
+      S('Flessori dell\'anca', hold + ' per lato'),
+    ] : [];
+    const th = [
+      { t: 'Serve? Utile se vuoi più mobilità, non indispensabile per allenarti bene.', lvl: 'Certo',
+        why: 'Fare stretching con regolarità aumenta nel tempo l\'ampiezza di movimento di un\'articolazione. Questo aiuta ad esempio a scendere più in basso nello squat o a tenere le braccia sopra la testa senza inarcare la schiena. Se la tua mobilità è già sufficiente per gli esercizi del piano, puoi farne poco o niente senza perdere risultati.' },
+      { t: 'Non è dimostrato che prevenga gli infortuni.', lvl: 'Probabile',
+        why: 'Gli studi non mostrano in modo coerente che lo stretching prima o dopo l\'allenamento riduca gli infortuni. Il riscaldamento progressivo, i carichi graduali e il recupero contano molto di più, e sono già nel piano.' },
+      { t: 'Non elimina il dolore muscolare del giorno dopo.', lvl: 'Probabile',
+        why: 'L\'effetto sul dolore tardivo (quello dei due giorni dopo un lavoro nuovo) è nullo o molto piccolo. Può dare però una sensazione di rilassamento, che per molte persone ha valore.' },
+      { t: 'Prima dell\'allenamento: no stretching statico lungo.', lvl: 'Probabile',
+        why: 'Tenere uno stretch per più di circa un minuto per muscolo subito prima di forza, corsa o skill può ridurre temporaneamente forza e potenza. Con tenute brevi l\'effetto è piccolo. Per questo il riscaldamento del piano è dinamico (movimenti, non tenute).' },
+      { t: 'Dopo l\'allenamento: 5 minuti vanno bene.', lvl: 'Probabile',
+        why: 'I muscoli sono caldi e lo stretching è più facile e piacevole. Non accelera il recupero in modo misurabile, ma è un modo comodo per chiudere la seduta e rallentare il respiro.' },
+      { t: 'Per guadagnare mobilità: una sessione dedicata, nei giorni di riposo o la sera.', lvl: 'Probabile',
+        why: 'Quello che conta per l\'ampiezza di movimento è il tempo totale di stretching per muscolo nella settimana, circa 4-5 minuti, distribuiti su 3-5 giorni. Una sessione di 10 minuti nei giorni liberi funziona meglio di pochi secondi buttati a fine seduta.' },
+    ];
+    const how = [
+      'Tensione lieve o moderata, mai dolore. Se il dolore è acuto o pungente, esci dalla posizione.',
+      'Tieni ' + hold + ' per posizione, ripeti 2 volte per lato. Non rimbalzare.',
+      'Respira lento e continuo: l\'espirazione lunga aiuta a rilasciare.',
+      'Mai su un muscolo con strappo o contrattura acuta: aspetta che passi e senti un medico o un fisioterapista se persiste.',
+    ];
+    if (gentle) how.push('Con il tuo profilo mantieni tutto dolce: nessuna posizione estrema, meglio poco e spesso.');
+    const extra = [];
+    if (hasSkill) extra.push('Con le skill avanzate la mobilità di spalle, polsi e anche conta: dedica 5 minuti alla spalla e ai polsi nella sessione dei giorni di riposo, e conserva la forza in ampiezza.');
+    if (hasRun) extra.push('Dopo la corsa fai lo stretching dopo 5 minuti di cammino, non a freddo e non subito dopo uno sforzo.');
+    if (walk) extra.push('Dopo la camminata veloce bastano polpacci e femorali.');
+    extra.push('Se sei molto flessibile o ipermobile, lo stretching non ti serve: meglio la forza in ampiezza.');
+    return { gentle: gentle, thoughts: th, how: how, extra: extra, postWorkout: postWork, restDay: restDay, postRun: postRun,
+             restDayMin: Math.max(8, Math.min(15, restDay.length * 1.5 | 0)) };
+  }
+
   const api = {
-    init: init, buildPlan: buildPlan, ladder: ladder, quickCircuit: quickCircuit, circuitAdvice: circuitAdvice, circuitTimeline: circuitTimeline, circuitFit: circuitFit, run: RUN, runProgram: runProgram, RL_LABEL: RL_LABEL, wcap: wcap,
+    init: init, buildPlan: buildPlan, ladder: ladder, quickCircuit: quickCircuit, circuitAdvice: circuitAdvice, circuitTimeline: circuitTimeline, circuitFit: circuitFit, run: RUN, runProgram: runProgram, stretchGuide: stretchGuide, RL_LABEL: RL_LABEL, wcap: wcap,
     avail: avail, blockReason: blockReason, scheduleSkills: scheduleSkills, adjacent: adjacent,
     DAYS: DAYS, DAYS_SHORT: DAYS_SHORT, TENDON_SKILLS: TENDON_SKILLS,
     byId: function (id) { return BY[id]; }, chain: function (c) { return CH[c]; },
@@ -1499,6 +1569,7 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
       '<p class="small mut">Completate ' + done + ' di ' + total + ' sessioni · ' + esc(plan.rir) + '<\/p>' +
       '<div class="row"><button class="btn sec" data-act="export">Esporta il piano<\/button><button class="btn sec" data-act="edit">Modifica profilo<\/button><\/div><\/div>';
     out += expectHtml();
+    out += stretchHtml();
     out += '<div class="chips" role="group" aria-label="Settimane">' + plan.weeks.map(function (w) {
       var dn = weekDone(w.w) === plan.sessions.length;
       return '<button class="chip ' + (dn ? 'done' : '') + '" data-act="wk" data-v="' + w.w + '" aria-pressed="' + (w.w === wk.w) + '">S' + (w.w + 1) + (w.deload ? ' ↓' : '') + '<\/button>';
@@ -1520,6 +1591,18 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
   }
 
 
+  function stretchHtml() {
+    var g = E.stretchGuide(profile(), plan, runProg());
+    var items = function (a) { return '<ul class="small" style="margin:6px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:4px">' + a.map(function (x) { return '<li><b>' + esc(x.name) + '<\/b>: ' + esc(x.detail) + '<\/li>'; }).join('') + '<\/ul>'; };
+    return '<details class="card"><summary>Stretching: se farlo, quando e perché<\/summary><div class="stack" style="margin-top:10px">' +
+      '<p class="small mut">Ogni affermazione ha un livello di certezza: <b>Certo<\/b> (evidenza solida), <b>Probabile<\/b> (indicazione forte ma con effetti piccoli o dibattuti).<\/p>' +
+      g.thoughts.map(function (t) { return '<div class="nt"><p><span class="tag ' + (t.lvl === 'Certo' ? 'tp' : '') + '">' + t.lvl + '<\/span> ' + esc(t.t) + '<\/p><details><summary>Perché<\/summary><p class="small">' + esc(t.why) + '<\/p><\/details><\/div>'; }).join('') +
+      '<h3>Come farlo<\/h3><ul class="small" style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px">' + g.how.map(function (x) { return '<li>' + esc(x) + '<\/li>'; }).join('') + '<\/ul>' +
+      (g.extra.length ? '<div class="note" style="display:block">' + g.extra.map(function (x) { return '<p class="small">' + esc(x) + '<\/p>'; }).join('') + '<\/div>' : '') +
+      (g.postWorkout.length ? '<details open><summary>Dopo la seduta · circa 5 minuti<\/summary>' + items(g.postWorkout) + '<\/details>' : '') +
+      '<details><summary>Giorno di riposo · circa ' + g.restDayMin + ' minuti, 3-5 volte a settimana<\/summary>' + items(g.restDay) + '<\/details>' +
+      '<p class="small mut">Informazioni generali, non un consiglio medico. Se hai dolore persistente o limiti articolari, chiedi a un fisioterapista.<\/p><\/div><\/details>';
+  }
   function runPlanCard(wk) {
     var r = runProg();
     if (!r) return '';
@@ -1794,6 +1877,8 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
         '<details><summary>Come farla<\/summary><p class="small">' + esc(x.detail) + '<\/p><\/details>' +
         '<button class="btn sec" style="margin-top:8px" data-act="rprog" data-w="' + rw.w + '" data-i="' + i + '" ' + (ok && !inArtifact() ? '' : 'disabled') + '>▶ Avvia con le indicazioni vocali<\/button><\/div>';
     });
+    var sg = E.stretchGuide(profile(), plan, r);
+    if (sg.postRun.length) out += '<details><summary>Stretching dopo la corsa · 4 minuti<\/summary><p class="small mut" style="margin-top:6px">Fallo dopo 5 minuti di cammino, con tensione lieve e senza rimbalzare. Non serve a prevenire gli infortuni, ma aiuta mobilità e rilassamento.<\/p><ul class="small" style="margin:6px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:4px">' + sg.postRun.map(function (x) { return '<li><b>' + esc(x.name) + '<\/b>: ' + esc(x.detail) + '<\/li>'; }).join('') + '<\/ul><\/details>';
     out += '<details><summary>Come inserire la corsa senza farti male<\/summary><div class="stack" style="margin-top:8px">' + r.tips.map(function (t) {
       return '<div><p class="small"><b>' + esc(t.t) + '<\/b><\/p><p class="small mut">' + esc(t.why) + '<\/p><\/div>';
     }).join('') + '<\/div><\/details>' + runSettingsHtml() + '<\/div>';
