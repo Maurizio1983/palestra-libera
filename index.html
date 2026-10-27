@@ -40,6 +40,9 @@ input[type=text],input[type=number],select{background:var(--bg);border:1.5px sol
 .warn,.note{border-radius:10px;padding:12px 14px;font-size:.92rem;display:flex;gap:10px;align-items:flex-start}
 .warn{background:var(--warn-bg);color:var(--warn)}
 .note{background:var(--acc-soft);color:var(--fg)}
+.bell{position:relative;width:44px;height:44px;border-radius:50%;border:1.5px solid var(--line);background:var(--card);color:var(--fg);display:grid;place-items:center;cursor:pointer}
+.badge{position:absolute;top:-4px;right:-4px;min-width:20px;height:20px;border-radius:10px;background:var(--tape);color:var(--tape-fg);font:700 .75rem Barlow,sans-serif;display:grid;place-items:center;padding:0 5px}
+.nt{border-left:6px solid var(--acc);background:var(--bg);border-radius:8px;padding:10px 12px}.nt.w{border-left-color:var(--warn)}
 .qbtn{flex:none;width:36px;height:36px;border-radius:50%;border:1.5px solid currentColor;background:transparent;color:inherit;font:700 1rem Barlow,sans-serif;cursor:pointer}
 .modal{position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center}
 .sheet{background:var(--card);color:var(--fg);width:100%;max-width:640px;border-radius:14px 14px 0 0;padding:20px max(20px,env(safe-area-inset-left,0px)) calc(20px + env(safe-area-inset-bottom,0px));max-height:85vh;overflow:auto}
@@ -782,7 +785,7 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
     ['skill', 'Skill avanzate', 'Verticale, front lever, muscle-up, planche con base di forza.'],
   ];
   var DEF = {
-    step: 0, tab: 'piano', wk: 0, done: {}, adv: {}, checked: 0, help: null, chk: {}, circ: null, circOpt: { area: 'full', minutes: 10, n: 4 },
+    step: 0, tab: 'piano', wk: 0, done: {}, adv: {}, checked: 0, notif: false, seen: [], newKeys: [], chk: {}, circ: null, circOpt: { area: 'full', minutes: 10, n: 4 },
     ladderChain: 'push_h', confirmReset: false,
     p: { name: '', age: '', height: '', weight: '', exp: 'ripartenza', eq: [], limits: [], screen: [], confirmed: false,
          goal: 'salute', minutes: 30, days: [0, 2, 4], weeks: 8, skills: [], starts: {} },
@@ -793,7 +796,7 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
   function load() {
     try {
       var r = JSON.parse(localStorage.getItem(KEY));
-      if (r && r.p) { r.p = Object.assign({}, DEF.p, r.p); r = Object.assign({}, DEF, r); r.help = null; r.chk = {}; return r; }
+      if (r && r.p) { r.p = Object.assign({}, DEF.p, r.p); r = Object.assign({}, DEF, r); r.notif = false; r.newKeys = []; r.chk = {}; return r; }
     } catch (e) {}
     return JSON.parse(JSON.stringify(DEF));
   }
@@ -949,9 +952,6 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
       '<div class="timeline">' + E.DAYS_SHORT.map(function (d, i) { return '<div class="' + (has(plan.profile.days, i) ? 'on' : '') + '">' + d + '<\/div>'; }).join('') + '<\/div>' +
       '<p class="small mut">Completate ' + done + ' di ' + total + ' sessioni · ' + esc(plan.rir) + '<\/p>' +
       '<div class="row"><button class="btn sec" data-act="export">Esporta il piano<\/button><button class="btn sec" data-act="edit">Modifica profilo<\/button><\/div><\/div>';
-    plan.warnings.forEach(function (w, i) {
-      out += '<div class="' + (w.lvl === 'info' ? 'note' : 'warn') + '" role="note"><span style="flex:1;min-width:0">' + esc(w.t) + '<\/span><button class="qbtn" data-act="help" data-i="' + i + '" aria-label="Spiega questo avviso">?<\/button><\/div>';
-    });
     out += expectHtml();
     out += '<div class="chips" role="group" aria-label="Settimane">' + plan.weeks.map(function (w) {
       var dn = weekDone(w.w) === plan.sessions.length;
@@ -994,12 +994,35 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
         return '<label class="opt ' + (S.chk[e.chain] ? 'on' : '') + '"><input type="checkbox" data-chk="' + e.chain + '" ' + (S.chk[e.chain] ? 'checked' : '') + '><span><b>' + esc(exName(e.exId)) + '<\/b><span class="small mut">Criterio: ' + esc(e.graduate) + ' Poi: ' + esc(e.next.name) + '<\/span><\/span><\/label>';
       }).join('') + '<button class="btn tape" data-act="closeblock">Conferma e aggiorna il piano<\/button><\/div>';
   }
-  function helpHtml() {
-    if (S.help == null || !plan || !plan.warnings[S.help]) return '';
-    var w = plan.warnings[S.help];
-    return '<div class="modal" data-act="helpclose"><div class="sheet" role="dialog" aria-modal="true" aria-label="Spiegazione"><div class="stack">' +
-      '<h2>Cosa significa<\/h2><p>' + esc(w.t) + '<\/p><h3>Perché succede<\/h3><p class="small">' + esc(w.why) + '<\/p><h3>Cosa puoi fare<\/h3><p class="small">' + esc(w.fix) + '<\/p>' +
-      '<button class="btn full" data-act="helpclose">Ho capito<\/button><\/div><\/div><\/div>';
+  function curWeek() {
+    for (var i = 0; i < plan.weeks.length; i++) if (weekDone(i) < plan.sessions.length) return i;
+    return plan.weeks.length - 1;
+  }
+  function notifs() {
+    if (!plan) return [];
+    var out = plan.warnings.map(function (w) { return { key: w.t, t: w.t, why: w.why, fix: w.fix, lvl: w.lvl }; });
+    var dl = S.checked * 4 + 3;
+    if (dl < plan.weeks.length && curWeek() >= dl)
+      out.unshift({ key: 'check-' + S.checked, t: 'È il momento del check di fine blocco ' + (S.checked + 1) + '.', lvl: 'info',
+        why: 'Il piano avanza solo se confermi tu di aver raggiunto il criterio negli esercizi. Così non ti propone gradini che non sei pronto a fare.',
+        fix: 'Vai nel tab Piano, apri la settimana ' + (dl + 1) + ' (scarico) e spunta solo gli esercizi in cui hai raggiunto il criterio con tecnica pulita.' });
+    return out;
+  }
+  function unreadCount() { return notifs().filter(function (n) { return !has(S.seen, n.key); }).length; }
+  function bellHtml() {
+    if (S.step < 5 || !plan) return '<span><\/span>';
+    var u = unreadCount();
+    return '<button class="bell" data-act="bell" aria-label="Notifiche' + (u ? ', ' + u + ' nuove' : '') + '"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><\/svg>' + (u ? '<span class="badge">' + u + '<\/span>' : '') + '<\/button>';
+  }
+  function notifHtml() {
+    if (!S.notif || !plan) return '';
+    var list = notifs();
+    var body = list.length ? list.map(function (n) {
+      var isNew = has(S.newKeys, n.key);
+      return '<div class="nt ' + (n.lvl === 'info' ? '' : 'w') + '"><p>' + (isNew ? '<span class="tag tp">Nuova<\/span> ' : '') + esc(n.t) + '<\/p>' +
+        '<details><summary>Perché e cosa fare<\/summary><p class="small"><b>Perché.<\/b> ' + esc(n.why) + '<\/p><p class="small" style="margin-top:6px"><b>Cosa puoi fare.<\/b> ' + esc(n.fix) + '<\/p><\/details><\/div>';
+    }).join('') : '<p class="mut">Nessuna notifica. Quando c\'è qualcosa da sapere sul tuo piano lo trovi qui.<\/p>';
+    return '<div class="modal" data-act="bellclose"><div class="sheet" role="dialog" aria-modal="true" aria-label="Notifiche"><div class="stack"><div class="row" style="justify-content:space-between"><h2>Notifiche<\/h2><button class="btn sec" data-act="bellclose">Chiudi<\/button><\/div>' + body + '<\/div><\/div><\/div>';
   }
 
   /* ------------------------------------------------ circuito rapido */
@@ -1089,7 +1112,7 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
     else if (S.tab === 'circuito') body = S.step >= 5 ? circuitView() : '<div class="stack"><h1>Circuito rapido<\/h1><div class="warn">Completa prima il profilo nel tab Piano: servono livello, attrezzi e limitazioni per costruire un circuito adatto a te.<\/div><\/div>';
     else if (S.tab === 'libreria') body = libraryView();
     else body = infoView();
-    document.getElementById('app').innerHTML = '<div class="top"><span class="brand"><i><\/i>Palestra Libera<\/span><\/div>' + body + (S.tab === 'piano' ? helpHtml() : '');
+    document.getElementById('app').innerHTML = '<div class="top"><span class="brand"><i><\/i>Palestra Libera<\/span>' + bellHtml() + '<\/div>' + body + notifHtml();
     document.getElementById('tabs').innerHTML = TABS.map(function (t) { return '<button role="tab" data-act="tab" data-v="' + t[0] + '" aria-selected="' + (S.tab === t[0]) + '">' + t[1] + '<\/button>'; }).join('');
     save();
   }
@@ -1099,7 +1122,7 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
     var b = ev.target.closest('[data-act]');
     if (!b) return;
     var a = b.dataset.act, v = b.dataset.v, p = S.p;
-    if (a === 'helpclose' && b.classList.contains('modal') && ev.target !== b) return;
+    if (a === 'bellclose' && b.classList.contains('modal') && ev.target !== b) return;
     var top = function () { window.scrollTo(0, 0); };
     go(function () {
       if (a === 'tab') { S.tab = v; top(); }
@@ -1112,9 +1135,9 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
       else if (a === 'weeks') p.weeks = +v;
       else if (a === 'day') { var d = +v; toggle(p.days, d); p.days.sort(function (x, y) { return x - y; }); }
       else if (a === 'start') { p.starts[b.dataset.c] = p.starts[b.dataset.c] === v ? undefined : v; if (p.starts[b.dataset.c] === undefined) delete p.starts[b.dataset.c]; }
-      else if (a === 'gen') { S.step = 5; S.wk = 0; S.done = {}; S.adv = {}; S.checked = 0; S.chk = {}; rebuild(); top(); }
-      else if (a === 'help') { S.help = +b.dataset.i; }
-      else if (a === 'helpclose') { S.help = null; }
+      else if (a === 'gen') { S.step = 5; S.wk = 0; S.done = {}; S.adv = {}; S.checked = 0; S.chk = {}; S.seen = []; rebuild(); top(); }
+      else if (a === 'bell') { S.newKeys = notifs().filter(function (n) { return !has(S.seen, n.key); }).map(function (n) { return n.key; }); notifs().forEach(function (n) { if (!has(S.seen, n.key)) S.seen.push(n.key); }); S.notif = true; }
+      else if (a === 'bellclose') { S.notif = false; }
       else if (a === 'closeblock') { Object.keys(S.chk).forEach(function (c) { if (S.chk[c]) S.adv[c] = (S.adv[c] || 0) + 1; }); S.chk = {}; S.checked += 1; rebuild(); toast('Piano aggiornato'); }
       else if (a === 'edit') { S.step = 1; top(); }
       else if (a === 'wk') { S.wk = +v; }
@@ -1130,7 +1153,7 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
       else if (a === 'reset2') { S = JSON.parse(JSON.stringify(DEF)); plan = null; try { localStorage.removeItem(KEY); } catch (e) {} }
     });
   });
-  document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && S.help != null) { S.help = null; render(); } });
+  document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && S.notif) { S.notif = false; render(); } });
   document.addEventListener('change', function (ev) {
     var t = ev.target, p = S.p;
     if (t.dataset.bind) { p[t.dataset.bind] = t.type === 'checkbox' ? t.checked : t.value; if (t.type === 'checkbox') render(); else save(); }
