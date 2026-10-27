@@ -43,6 +43,13 @@ input[type=text],input[type=number],select{background:var(--bg);border:1.5px sol
 .bell{position:relative;width:44px;height:44px;border-radius:50%;border:1.5px solid var(--line);background:var(--card);color:var(--fg);display:grid;place-items:center;cursor:pointer}
 .badge{position:absolute;top:-4px;right:-4px;min-width:20px;height:20px;border-radius:10px;background:var(--tape);color:var(--tape-fg);font:700 .75rem Barlow,sans-serif;display:grid;place-items:center;padding:0 5px}
 .nt{border-left:6px solid var(--acc);background:var(--bg);border-radius:8px;padding:10px 12px}.nt.w{border-left-color:var(--warn)}
+.tm{position:fixed;inset:0;z-index:40;background:var(--bg);color:var(--fg);overflow:auto;padding-bottom:env(safe-area-inset-bottom,0px)}
+.tmband{display:flex;justify-content:space-between;gap:10px;padding:calc(14px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 14px max(16px,env(safe-area-inset-left,0px));font:700 1.3rem 'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.06em}
+.tmband.work{background:var(--acc);color:var(--acc-fg)}.tmband.rest{background:var(--tape);color:var(--tape-fg)}.tmband.prep{background:var(--fg);color:var(--bg)}
+.tmbar{height:6px;background:var(--line)}.tmbar i{display:block;height:100%;width:0;background:var(--tape)}
+.tmin{max-width:640px;margin:0 auto;padding:18px max(16px,env(safe-area-inset-left,0px))}
+.tmtime{font:700 6rem/1 'Barlow Condensed',sans-serif;text-align:center;font-variant-numeric:tabular-nums}
+.tmcount{font:700 4rem/1 'Barlow Condensed',sans-serif;text-align:center}
 .qbtn{flex:none;width:36px;height:36px;border-radius:50%;border:1.5px solid currentColor;background:transparent;color:inherit;font:700 1rem Barlow,sans-serif;cursor:pointer}
 .modal{position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center}
 .sheet{background:var(--card);color:var(--fg);width:100%;max-width:640px;border-radius:14px 14px 0 0;padding:20px max(20px,env(safe-area-inset-left,0px)) calc(20px + env(safe-area-inset-bottom,0px));max-height:85vh;overflow:auto}
@@ -715,49 +722,106 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
     for (let i = x.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); const t = x[i]; x[i] = x[j]; x[j] = t; }
     return x;
   }
+  const CGOALS = {
+    resistenza: {
+      label: 'Resistenza',
+      what: 'Allena la capacità di sostenere uno sforzo medio a lungo: ripetizioni moderate, quasi senza pause.',
+      how: 'Fai i giri più bravo possibile nel tempo dato (AMRAP), senza fermarti ma senza sacrificare la tecnica. Riprova lo stesso circuito più avanti: più giri a parità di tecnica significa che sei migliorato.',
+      gentle: 'Per chi riparte o è sedentario non uso l\'AMRAP: parte come lavoro a intervalli 30/30, più facile da dosare.',
+    },
+    cardio: {
+      label: 'Cardio',
+      what: 'Alza il battito con movimenti ampi e alterna lavoro e pausa breve.',
+      how: 'Lavora a ritmo sostenuto per il tempo indicato e riposa nei secondi di pausa. Se non riesci a parlare a frasi brevi durante il lavoro, rallenta.',
+      gentle: 'Per chi riparte uso 30 secondi di lavoro e 30 di pausa, più facili da gestire.',
+    },
+    forza: {
+      label: 'Forza',
+      what: 'Pochi esercizi impegnativi, ripetizioni basse e recuperi lunghi: serve a spingere il livello di forza, non il fiato.',
+      how: 'Fai le ripetizioni indicate con tecnica pulita, tocca "Fatto" e riposa. I giri sono pochi, ma ogni serie conta: se la tecnica crolla, fermati.',
+      gentle: 'Per chi riparte il circuito usa gli esercizi del tuo livello attuale con recuperi più lunghi.',
+    },
+  };
+  function isGentle(p) { return p.caution || p.exp === 'sedentario' || p.exp === 'ripartenza'; }
+  function circuitAdvice(profile, opts) {
+    const p = normalize(profile);
+    const g = CGOALS[opts.goal] ? opts.goal : 'resistenza';
+    const minutes = opts.minutes || 10, gentle = isGentle(p);
+    let format, work = 0, rest = 0, recN, rounds;
+    if (g === 'forza') {
+      format = 'forza'; recN = minutes <= 10 ? 3 : 4; rounds = 2;
+    } else if (g === 'resistenza' && !gentle) {
+      format = 'amrap'; recN = Math.max(3, Math.min(6, Math.round(minutes * 0.4)));
+      rounds = Math.max(1, Math.round(minutes * 60 / (recN * 45)));
+    } else {
+      format = 'intervalli';
+      work = (g === 'cardio' && !gentle) ? 40 : 30; rest = (g === 'cardio' && !gentle) ? 20 : 30;
+      recN = Math.max(3, Math.min(6, Math.round(minutes / 3.5)));
+      rounds = Math.max(1, Math.floor(minutes * 60 / (recN * (work + rest))));
+    }
+    const n = Math.max(3, Math.min(6, opts.n || recN));
+    // giri stimati per il numero scelto
+    let r;
+    if (format === 'forza') r = Math.max(1, Math.min(5, Math.floor(minutes * 60 / (n * 85 + 45))));
+    else if (format === 'amrap') r = Math.max(1, Math.round(minutes * 60 / (n * 45)));
+    else r = Math.max(1, Math.floor(minutes * 60 / (n * (work + rest))));
+    const restEx = minutes < 10 ? 30 : 45, restRound = minutes < 10 ? 60 : 90;
+    if (format === 'forza') r = Math.max(1, Math.min(5, Math.floor(minutes * 60 / (n * (40 + restEx) + (restRound - restEx)))));
+    let why;
+    if (format === 'amrap') why = 'In ' + minutes + ' minuti con ' + n + ' esercizi fai circa ' + r + ' giri. ' + (r >= 3 ? 'È abbastanza per sentire l\'effetto della ripetizione senza far crollare la tecnica.' : 'Sono pochi giri: il circuito diventa una lista di esercizi e non un lavoro continuo. Meglio meno esercizi.') + ' Meno esercizi significa più giri sugli stessi muscoli; più esercizi significa più varietà ma meno giri e più tempo perso nei passaggi.';
+    else if (format === 'intervalli') why = 'Con ' + n + ' esercizi da ' + work + ' secondi e ' + rest + ' di pausa un giro dura circa ' + Math.round(n * (work + rest) / 60 * 10) / 10 + ' minuti: in ' + minutes + ' minuti fai circa ' + r + ' giri. Servono almeno 3 giri perché il lavoro a intervalli abbia effetto.';
+    else why = 'Per la forza servono pochi esercizi difficili ripetuti più volte. Con ' + n + ' esercizi fai circa ' + r + ' giri: ogni movimento riceve abbastanza serie per essere uno stimolo vero, e il recupero tra i giri è lungo.';
+    return { goal: g, format: format, work: work, rest: rest, restEx: restEx, restRound: restRound, recN: recN, n: n, est: r, why: why,
+             what: CGOALS[g].what, how: CGOALS[g].how, gentleNote: (gentle && g !== 'forza') ? CGOALS[g].gentle : '', label: CGOALS[g].label };
+  }
   function quickCircuit(profile, opts, rng) {
     rng = rng || Math.random;
     const p = normalize(profile);
-    const memo = {};
-    const chains = {};
+    const memo = {}, chains = {};
     Object.keys(LIB.chains).forEach(function (c) { chains[c] = resolve(c, p, memo); });
-    const gentle = p.caution || p.exp === 'sedentario' || p.exp === 'ripartenza';
-    const mode = gentle ? 'intervalli' : (opts.mode || 'amrap');
+    const adv = circuitAdvice(profile, opts);
     const area = AREAS[opts.area] ? opts.area : 'full';
-    const n = Math.max(2, Math.min(8, opts.n || 4));
-    const order = shuffle(AREAS[area], rng);
+    const n = adv.n, drop = adv.format === 'forza' ? 0 : 1;
+    let list = (adv.goal === 'cardio' && area === 'full') ? AREAS.cardio : AREAS[area];
+    if (adv.goal === 'forza') list = list.filter(function (c) { return c !== 'cond'; });
+    const order = shuffle(list, rng);
     const items = [], used = {};
-    for (let i = 0; i < order.length * 2 && items.length < n; i++) {
+    for (let i = 0; i < order.length * 3 && items.length < n; i++) {
       let cid = order[i % order.length];
       if (cid === 'PULL') cid = (chains.pull_v.idx >= 0 && rng() < 0.5) ? 'pull_v' : 'pull_h';
       const r = chains[cid];
       if (!r || r.idx < 0) continue;
-      const ex = r.steps[r.idx];
-      if (used[ex.id]) {
-        if (r.idx > 0 && !used[r.steps[r.idx - 1].id]) { used[r.steps[r.idx - 1].id] = true; items.push(r.steps[r.idx - 1].id); }
-        continue;
-      }
+      let k = Math.max(0, r.idx - drop);
+      while (used[r.steps[k].id] && k > 0) k--;
+      const ex = r.steps[k];
+      if (used[ex.id]) continue;
       used[ex.id] = true; items.push(ex.id);
     }
-    const res = { mode: mode, area: area, minutes: opts.minutes || 10, items: [] };
-    if (mode === 'intervalli') {
-      const per = items.length * 60 / 60;
-      res.rounds = Math.max(1, Math.round(res.minutes / per));
-      res.work = 30; res.rest = 30;
-      items.forEach(function (id) { res.items.push({ exId: id, secs: 30 }); });
-    } else {
-      items.forEach(function (id) {
-        const ex = BY[id];
-        res.items.push(ex.kind === 'time'
-          ? { exId: id, secs: Math.max(20, Math.round((ex.lo + ex.hi) / 2 * 0.7)) }
-          : { exId: id, reps: Math.max(4, Math.round(ex.lo + (ex.hi - ex.lo) * 0.25)) });
+    const res = { mode: adv.format, format: adv.format, goal: adv.goal, area: area, minutes: opts.minutes || 10, n: items.length, rounds: adv.est, work: adv.work, rest: adv.rest, restEx: adv.restEx, restRound: adv.restRound, items: [], advice: adv };
+    items.forEach(function (id) {
+      const ex = BY[id];
+      if (adv.format === 'intervalli') res.items.push({ exId: id, secs: adv.work });
+      else if (adv.format === 'amrap') res.items.push(ex.kind === 'time' ? { exId: id, secs: Math.max(20, Math.round((ex.lo + ex.hi) / 2 * 0.7)) } : { exId: id, reps: Math.max(4, Math.round(ex.lo + (ex.hi - ex.lo) * 0.25)) });
+      else res.items.push(ex.kind === 'time' ? { exId: id, secs: Math.round(ex.lo + (ex.hi - ex.lo) * 0.5), manual: true } : { exId: id, reps: Math.round(ex.lo + (ex.hi - ex.lo) * 0.4), manual: true });
+    });
+    return res;
+  }
+  function circuitTimeline(c) {
+    const ph = [{ type: 'prep', secs: 10, label: 'Preparati' }];
+    if (c.format === 'amrap') { ph.push({ type: 'amrap', secs: c.minutes * 60, label: 'AMRAP' }); return ph; }
+    const n = c.items.length;
+    for (let r = 0; r < c.rounds; r++) {
+      c.items.forEach(function (it, i) {
+        ph.push({ type: 'work', ex: it.exId, round: r + 1, idx: i + 1, secs: c.format === 'intervalli' ? c.work : 0, manual: c.format === 'forza', reps: it.reps || 0, label: 'Lavoro' });
+        const last = r === c.rounds - 1 && i === n - 1;
+        if (!last) ph.push({ type: 'rest', secs: c.format === 'intervalli' ? c.rest : (i === n - 1 ? c.restRound : c.restEx), next: i === n - 1 ? c.items[0].exId : c.items[i + 1].exId, label: 'Pausa' });
       });
     }
-    return res;
+    return ph;
   }
 
   const api = {
-    init: init, buildPlan: buildPlan, ladder: ladder, quickCircuit: quickCircuit,
+    init: init, buildPlan: buildPlan, ladder: ladder, quickCircuit: quickCircuit, circuitAdvice: circuitAdvice, circuitTimeline: circuitTimeline,
     avail: avail, blockReason: blockReason, scheduleSkills: scheduleSkills, adjacent: adjacent,
     DAYS: DAYS, DAYS_SHORT: DAYS_SHORT, TENDON_SKILLS: TENDON_SKILLS,
     byId: function (id) { return BY[id]; }, chain: function (c) { return CH[c]; },
@@ -785,7 +849,7 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
     ['skill', 'Skill avanzate', 'Verticale, front lever, muscle-up, planche con base di forza.'],
   ];
   var DEF = {
-    step: 0, tab: 'piano', wk: 0, done: {}, adv: {}, checked: 0, notif: false, seen: [], newKeys: [], chk: {}, circ: null, circOpt: { area: 'full', minutes: 10, n: 4 },
+    step: 0, tab: 'piano', wk: 0, done: {}, adv: {}, checked: 0, notif: false, seen: [], newKeys: [], chk: {}, circ: null, circOpt: { area: 'full', goal: 'resistenza', minutes: 10, n: null }, best: {},
     ladderChain: 'push_h', confirmReset: false,
     p: { name: '', age: '', height: '', weight: '', exp: 'ripartenza', eq: [], limits: [], screen: [], confirmed: false,
          goal: 'salute', minutes: 30, days: [0, 2, 4], weeks: 8, skills: [], starts: {} },
@@ -796,7 +860,7 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
   function load() {
     try {
       var r = JSON.parse(localStorage.getItem(KEY));
-      if (r && r.p) { r.p = Object.assign({}, DEF.p, r.p); r = Object.assign({}, DEF, r); r.notif = false; r.newKeys = []; r.chk = {}; return r; }
+      if (r && r.p) { r.p = Object.assign({}, DEF.p, r.p); r = Object.assign({}, DEF, r); r.notif = false; r.newKeys = []; r.chk = {}; if (r.circ && !r.circ.format) r.circ = null; r.circOpt = Object.assign({}, DEF.circOpt, r.circOpt); r.best = r.best || {}; return r; }
     } catch (e) {}
     return JSON.parse(JSON.stringify(DEF));
   }
@@ -1026,23 +1090,123 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
   }
 
   /* ------------------------------------------------ circuito rapido */
-  var AREA = [['full', 'Corpo intero'], ['upper', 'Parte alta'], ['lower', 'Gambe'], ['core', 'Core'], ['cardio', 'Cardio']];
+  var AREA = [['full', 'Corpo intero'], ['upper', 'Parte alta'], ['lower', 'Gambe'], ['core', 'Core']];
+  var CGOAL = [['resistenza', 'Resistenza'], ['cardio', 'Cardio'], ['forza', 'Forza']];
+  function circKey(c) { return [c.goal, c.area, c.minutes].join('-'); }
+  function reps(it) { var ex = E.byId(it.exId); return it.reps ? it.reps + (ex.per ? ' /lato' : '') : it.secs + ' s' + (ex.per ? ' /lato' : ''); }
   function circuitView() {
-    var o = S.circOpt, c = S.circ;
-    var out = '<div class="stack"><h1>Circuito rapido<\/h1><p class="mut small">Un circuito singolo, costruito dalle tue progressioni al tuo livello attuale. Non sostituisce il piano.<\/p>' +
+    var o = S.circOpt, c = S.circ, adv = E.circuitAdvice(profile(), o);
+    var out = '<div class="stack"><h1>Circuito rapido<\/h1>' +
+      '<p class="mut small">Un circuito singolo, costruito dalle tue progressioni al tuo livello attuale. Non sostituisce il piano.<\/p>' +
       '<h3>Zona<\/h3><div class="chips">' + AREA.map(function (a) { return '<button class="chip" data-act="carea" data-v="' + a[0] + '" aria-pressed="' + (o.area === a[0]) + '">' + a[1] + '<\/button>'; }).join('') + '<\/div>' +
+      '<h3>Obiettivo<\/h3><div class="chips">' + CGOAL.map(function (a) { return '<button class="chip" data-act="cgoal" data-v="' + a[0] + '" aria-pressed="' + (o.goal === a[0]) + '">' + a[1] + '<\/button>'; }).join('') + '<\/div>' +
+      '<div class="note" style="display:block"><b>A cosa serve.<\/b> ' + esc(adv.what) + '<br><b>Come usarlo.<\/b> ' + esc(adv.how) + (adv.gentleNote ? '<br><b>Per te.<\/b> ' + esc(adv.gentleNote) : '') + '<\/div>' +
       '<h3>Durata<\/h3><div class="chips">' + [8, 10, 15, 20].map(function (m) { return '<button class="chip" data-act="cmin" data-v="' + m + '" aria-pressed="' + (o.minutes === m) + '">' + m + ' min<\/button>'; }).join('') + '<\/div>' +
-      '<h3>Esercizi<\/h3><div class="chips">' + [3, 4, 5, 6].map(function (m) { return '<button class="chip" data-act="cn" data-v="' + m + '" aria-pressed="' + (o.n === m) + '">' + m + '<\/button>'; }).join('') + '<\/div>' +
+      '<h3>Quanti esercizi<\/h3><div class="chips">' + [3, 4, 5, 6].map(function (m) { return '<button class="chip" data-act="cn" data-v="' + m + '" aria-pressed="' + (adv.n === m) + '">' + m + (m === adv.recN ? ' · consigliato' : '') + '<\/button>'; }).join('') + '<\/div>' +
+      '<p class="small mut">' + esc(adv.why) + '<\/p>' +
       '<button class="btn tape full" data-act="circ">Genera circuito<\/button>';
     if (c) {
-      var head = c.mode === 'intervalli' ? c.rounds + ' giri · 30 s di lavoro, 30 s di pausa' : 'AMRAP ' + c.minutes + ' minuti';
-      out += '<div class="card stack"><h2>' + head + '<\/h2>' + c.items.map(function (it) {
-        var ex = E.byId(it.exId);
-        return '<div class="ex"><div class="nm"><span>' + esc(ex.name) + '<\/span><span class="rx">' + (it.reps ? it.reps + (ex.per ? ' /lato' : '') : it.secs + ' s') + '<\/span><\/div>' + stepsHtml(ex) + '<\/div>';
-      }).join('') + '<button class="btn sec" data-act="exportc">Esporta<\/button><\/div>';
+      var tl = E.circuitTimeline(c), tot = 0; tl.forEach(function (x) { tot += x.secs || 0; }); if (c.format === 'forza') tot += c.rounds * c.items.length * 40;
+      var head = c.format === 'amrap' ? 'AMRAP ' + c.minutes + ' minuti' : c.format === 'intervalli' ? c.rounds + ' giri · ' + c.work + ' s lavoro, ' + c.rest + ' s pausa' : c.rounds + ' giri · recupero ' + c.restEx + ' s tra gli esercizi, ' + c.restRound + ' s tra i giri';
+      var best = S.best[circKey(c)];
+      out += '<div class="card stack"><h2>' + head + '<\/h2><p class="small mut">' + c.items.length + ' esercizi · circa ' + Math.round(tot / 60) + ' minuti' + (c.format === 'amrap' ? '. Più giri possibile.' : '') + (best ? ' · Record: ' + best + ' giri' : '') + '<\/p>' +
+        c.items.map(function (it) {
+          var ex = E.byId(it.exId);
+          return '<div class="ex"><div class="nm"><span>' + esc(ex.name) + '<\/span><span class="rx">' + reps(it) + '<\/span><\/div>' + stepsHtml(ex) + '<\/div>';
+        }).join('') +
+        '<button class="btn full" data-act="tstart">▶ Avvia il timer<\/button><button class="btn sec" data-act="exportc">Esporta<\/button><\/div>';
     }
     return out + '<\/div>';
   }
+
+  /* ------------------------------------------------ timer */
+  var T = null, tTick = null, audio = null, wake = null;
+  function beep(f, d) {
+    try { if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)(); var o = audio.createOscillator(), g = audio.createGain(); o.frequency.value = f; g.gain.value = 0.15; o.connect(g); g.connect(audio.destination); o.start(); o.stop(audio.currentTime + d); } catch (e) {}
+  }
+  function buzz(p) { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} }
+  function fmt(x) { x = Math.max(0, Math.ceil(x)); var m = Math.floor(x / 60), s = x % 60; return m + ':' + (s < 10 ? '0' : '') + s; }
+  function timerStart() {
+    var c = S.circ; if (!c) return;
+    T = { c: c, ph: E.circuitTimeline(c), i: -1, running: true, rounds: 0, t0: Date.now(), left: 0, end: 0, exit: false, done: false, lastBeep: -1 };
+    try { if (navigator.wakeLock) navigator.wakeLock.request('screen').then(function (w) { wake = w; }, function () {}); } catch (e) {}
+    beep(660, 0.15);
+    tNext(); clearInterval(tTick); tTick = setInterval(tTickFn, 200);
+  }
+  function tNext() {
+    T.i++; T.lastBeep = -1;
+    if (T.i >= T.ph.length) { tFinish(); return; }
+    var p = T.ph[T.i]; T.left = p.secs; T.end = Date.now() + p.secs * 1000; T.elapsed = 0; T.pstart = Date.now();
+    if (T.i > 0) { beep(p.type === 'rest' ? 523 : 880, 0.25); buzz(p.type === 'rest' ? 120 : [120, 60, 120]); }
+    tRender();
+  }
+  function tTickFn() {
+    if (!T || !T.running || T.done) return;
+    var p = T.ph[T.i];
+    if (p.manual) { T.elapsed = Math.floor((Date.now() - T.pstart) / 1000); tUpdate(); return; }
+    T.left = (T.end - Date.now()) / 1000;
+    var l = Math.ceil(T.left);
+    if (l <= 3 && l >= 1 && T.lastBeep !== l) { T.lastBeep = l; beep(440, 0.08); }
+    if (T.left <= 0) { tNext(); return; }
+    tUpdate();
+  }
+  function tFinish() {
+    T.done = true; clearInterval(tTick);
+    var c = T.c; if (c.format === 'amrap' && T.rounds > 0) { var k = circKey(c); T.prev = S.best[k] || 0; if (T.rounds > T.prev) S.best[k] = T.rounds; save(); }
+    beep(988, 0.4); buzz([200, 80, 200, 80, 300]);
+    try { if (wake) wake.release(); } catch (e) {} wake = null;
+    tRender();
+  }
+  function tClose() { clearInterval(tTick); T = null; try { if (wake) wake.release(); } catch (e) {} wake = null; var el = document.getElementById('tm'); if (el) el.remove(); render(); }
+  function tUpdate() {
+    var t = document.getElementById('tm-time'); if (!t || !T) return; var p = T.ph[T.i];
+    t.textContent = p.manual ? fmt(T.elapsed) : fmt(T.left);
+    var tot = 0, done = 0; T.ph.forEach(function (x, i) { tot += x.secs || 0; if (i < T.i) done += x.secs || 0; }); if (p && !p.manual) done += (p.secs - Math.max(0, T.left));
+    var bar = document.getElementById('tm-bar'); if (bar && tot) bar.style.width = Math.min(100, done / tot * 100) + '%';
+  }
+  function tRender() {
+    var el = document.getElementById('tm'); if (!el) { el = document.createElement('div'); el.id = 'tm'; el.className = 'tm'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', 'Timer del circuito'); document.body.appendChild(el); }
+    var c = T.c, h;
+    if (T.done) {
+      var secs = Math.round((Date.now() - T.t0) / 1000);
+      h = '<div class="tmin stack"><h1>Circuito completato<\/h1><p>Tempo totale ' + fmt(secs) + '.<\/p>' +
+        (c.format === 'amrap' ? '<p class="rx" style="font-size:1.6rem">' + T.rounds + ' giri<\/p><p class="small mut">' + (T.rounds > (T.prev || 0) ? (T.prev ? 'Nuovo record: prima ' + T.prev + ' giri.' : 'Primo risultato registrato per questo circuito.') : 'Record: ' + T.prev + ' giri.') + ' Riprova lo stesso circuito più avanti per confrontarti.<\/p>' : '') +
+        '<button class="btn full" data-t="close">Chiudi<\/button><\/div>';
+    } else {
+      var p = T.ph[T.i], nx = T.ph[T.i + 1], cls = p.type === 'rest' ? 'rest' : p.type === 'prep' ? 'prep' : 'work';
+      var ex = p.ex ? E.byId(p.ex) : null, it = ex ? c.items.filter(function (x) { return x.exId === p.ex; })[0] : null;
+      var nextEx = p.type === 'rest' ? E.byId(p.next) : (nx && nx.type === 'rest' ? (T.ph[T.i + 2] ? E.byId(T.ph[T.i + 2].ex) : null) : null);
+      h = '<div class="tmband ' + cls + '"><span aria-live="polite">' + (p.type === 'amrap' ? 'AMRAP' : p.label) + '<\/span>' + (p.round ? '<span>Giro ' + p.round + '/' + c.rounds + ' · ' + p.idx + '/' + c.items.length + '<\/span>' : '') + '<\/div>' +
+        '<div class="tmbar"><i id="tm-bar"><\/i><\/div><div class="tmin stack">';
+      if (p.type === 'amrap') {
+        h += '<div class="tmtime" id="tm-time" role="timer">' + fmt(T.left) + '<\/div><p class="mut small" style="text-align:center">Giri completati<\/p><div class="tmcount">' + T.rounds + '<\/div><div class="row" style="justify-content:center"><button class="btn sec" data-t="minus">−1<\/button><button class="btn tape" style="min-width:160px;font-size:1.3rem" data-t="plus">+1 giro<\/button><\/div>' +
+          '<div class="card">' + c.items.map(function (x) { return '<div class="ex"><div class="nm"><span>' + esc(exName(x.exId)) + '<\/span><span class="rx">' + reps(x) + '<\/span><\/div><\/div>'; }).join('') + '<\/div>';
+      } else if (p.type === 'prep') {
+        h += '<div class="tmtime" id="tm-time" role="timer">' + fmt(T.left) + '<\/div><p style="text-align:center">Prossimo: <b>' + esc(exName(c.items[0].exId)) + '<\/b><\/p>';
+      } else if (p.type === 'work') {
+        h += '<h2 style="text-align:center">' + esc(ex.name) + '<\/h2><div class="tmtime" id="tm-time" role="timer">' + (p.manual ? fmt(T.elapsed) : fmt(T.left)) + '<\/div><p class="rx" style="text-align:center;font-size:1.5rem">' + reps(it) + '<\/p>' +
+          (p.manual ? '<button class="btn tape full" data-t="next">Fatto<\/button>' : '') + '<details><summary>Come si fa<\/summary><ol>' + ex.steps.map(function (x) { return '<li>' + esc(x) + '<\/li>'; }).join('') + '<\/ol><\/details>';
+      } else {
+        h += '<div class="tmtime" id="tm-time" role="timer">' + fmt(T.left) + '<\/div><p style="text-align:center">Respira. Prossimo: <b>' + esc(nextEx ? nextEx.name : '') + '<\/b><\/p>';
+      }
+      h += '<div class="row" style="justify-content:center">' + (p.type === 'amrap' ? '' : '') +
+        '<button class="btn" data-t="pp" style="min-width:130px">' + (T.running ? '❚❚ Pausa' : '▶ Riprendi') + '<\/button>' +
+        '<button class="btn sec" data-t="next">Salta<\/button>' +
+        (T.exit ? '<button class="btn sec" data-t="close">Sì, esci<\/button><button class="btn sec" data-t="stay">Resta<\/button>' : '<button class="btn sec" data-t="exit">Esci<\/button>') + '<\/div><\/div>';
+    }
+    el.innerHTML = h; tUpdate();
+  }
+  document.addEventListener('click', function (ev) {
+    var b = ev.target.closest('[data-t]'); if (!b || !T) { if (b && b.dataset.t === 'close') tClose(); return; }
+    var a = b.dataset.t;
+    if (a === 'pp') { if (T.running) { T.running = false; T.pausedAt = Date.now(); } else { T.running = true; var d = Date.now() - T.pausedAt; T.end += d; T.pstart += d; } tRender(); }
+    else if (a === 'next') { tNext(); }
+    else if (a === 'plus') { T.rounds++; buzz(40); tRender(); }
+    else if (a === 'minus') { T.rounds = Math.max(0, T.rounds - 1); tRender(); }
+    else if (a === 'exit') { T.exit = true; tRender(); }
+    else if (a === 'stay') { T.exit = false; tRender(); }
+    else if (a === 'close') tClose();
+  });
 
   /* ------------------------------------------------ libreria */
   function libraryView() {
@@ -1086,8 +1250,8 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
     return L.join('\n');
   }
   function circText() {
-    var c = S.circ;
-    return ['CIRCUITO', c.mode === 'intervalli' ? c.rounds + ' giri 30/30' : 'AMRAP ' + c.minutes + ' min'].concat(c.items.map(function (i) { return '- ' + exName(i.exId) + ': ' + (i.reps ? i.reps : i.secs + ' s'); })).join('\n');
+    var c = S.circ, head = c.format === 'amrap' ? 'AMRAP ' + c.minutes + ' minuti' : c.format === 'intervalli' ? c.rounds + ' giri, ' + c.work + ' s lavoro / ' + c.rest + ' s pausa' : c.rounds + ' giri, recupero ' + c.restEx + ' s tra esercizi, ' + c.restRound + ' s tra giri';
+    return ['CIRCUITO - ' + c.advice.label + ' - ' + head].concat(c.items.map(function (i) { return '- ' + exName(i.exId) + ': ' + reps(i); })).join('\n');
   }
   function exportText(name, text) {
     if (typeof claude === 'undefined' || !claude.use) {
@@ -1144,8 +1308,10 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
       else if (a === 'export') exportText('piano-allenamento.txt', planText());
       else if (a === 'exportc') exportText('circuito.txt', circText());
       else if (a === 'carea') S.circOpt.area = v;
-      else if (a === 'cmin') S.circOpt.minutes = +v;
+      else if (a === 'cgoal') { S.circOpt.goal = v; S.circOpt.n = null; }
+      else if (a === 'cmin') { S.circOpt.minutes = +v; S.circOpt.n = null; }
       else if (a === 'cn') S.circOpt.n = +v;
+      else if (a === 'tstart') { timerStart(); }
       else if (a === 'circ') S.circ = E.quickCircuit(profile(), S.circOpt);
       else if (a === 'lc') S.ladderChain = v;
       else if (a === 'reset1') S.confirmReset = true;
