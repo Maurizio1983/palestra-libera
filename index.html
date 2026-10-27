@@ -1,0 +1,1029 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1f5c4a"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Palestra Libera"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png"></head><body><title>Palestra Libera</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+:root{--bg:#eceff0;--card:#fff;--fg:#14211d;--mut:#55655f;--line:#d3dbd8;--acc:#1f5c4a;--acc-fg:#fff;--acc-soft:#dcebe5;--tape:#f2c230;--tape-fg:#2a2100;--warn:#8a3b12;--warn-bg:#fbe9dc;--ok:#1f6b3a;--dis:#e3e8e6;--shadow:0 1px 0 rgba(20,33,29,.06)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1715;--card:#17211e;--fg:#e8efec;--mut:#9fb0a9;--line:#2b3a35;--acc:#5fc4a2;--acc-fg:#0a1713;--acc-soft:#1d332c;--tape:#f2c230;--tape-fg:#2a2100;--warn:#f0a57a;--warn-bg:#36211a;--ok:#7fd49b;--dis:#202c28;--shadow:none;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1715;--card:#17211e;--fg:#e8efec;--mut:#9fb0a9;--line:#2b3a35;--acc:#5fc4a2;--acc-fg:#0a1713;--acc-soft:#1d332c;--tape:#f2c230;--tape-fg:#2a2100;--warn:#f0a57a;--warn-bg:#36211a;--ok:#7fd49b;--dis:#202c28;--shadow:none;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:16px/1.5 Barlow,system-ui,sans-serif;padding-block:0 96px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+#app{max-width:640px;margin:0 auto}
+h1,h2,h3{font-family:'Barlow Condensed',Impact,sans-serif;text-transform:uppercase;letter-spacing:.03em;line-height:1.1;margin:0;text-wrap:balance}
+h1{font-size:2rem}h2{font-size:1.45rem}h3{font-size:1.1rem}
+p{margin:0}.mut{color:var(--mut)}.small{font-size:.875rem}
+.stack{display:flex;flex-direction:column;gap:14px}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;box-shadow:var(--shadow);min-width:0}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding:12px 0 8px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.brand{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:1.35rem;text-transform:uppercase;letter-spacing:.05em}
+.brand i{display:inline-block;width:10px;height:18px;background:var(--tape);margin-right:8px;transform:skewX(-14deg);vertical-align:-2px}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--card);border-top:1px solid var(--line);display:flex;justify-content:center;padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px))}
+nav.tabs button{flex:1;max-width:160px;background:none;border:0;color:var(--mut);font:600 .8rem Barlow,sans-serif;text-transform:uppercase;letter-spacing:.05em;padding:8px 4px;border-radius:8px;min-height:44px;cursor:pointer}
+nav.tabs button[aria-selected=true]{color:var(--fg);background:var(--acc-soft);box-shadow:inset 0 -3px 0 var(--tape)}
+button,input,select,textarea{font:inherit;color:inherit}
+.btn{background:var(--acc);color:var(--acc-fg);border:0;border-radius:8px;padding:12px 18px;font:600 1rem Barlow,sans-serif;min-height:46px;cursor:pointer}
+.btn.sec{background:transparent;color:var(--fg);border:1.5px solid var(--line)}
+.btn.tape{background:var(--tape);color:var(--tape-fg)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.btn.full{width:100%}
+.btn:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid var(--tape);outline-offset:2px}
+label.f{display:flex;flex-direction:column;gap:4px;font-weight:600;font-size:.9rem}
+input[type=text],input[type=number],select{background:var(--bg);border:1.5px solid var(--line);border-radius:8px;padding:10px 12px;min-height:44px;width:100%}
+.opt{display:flex;gap:12px;align-items:flex-start;border:1.5px solid var(--line);border-radius:10px;padding:12px;background:var(--card);cursor:pointer;min-width:0;width:100%;text-align:left}
+.opt[aria-pressed=true],.opt.on{border-color:var(--acc);background:var(--acc-soft);box-shadow:inset 4px 0 0 var(--tape)}
+.opt b{display:block}
+.opt input{margin-top:4px;width:20px;height:20px;accent-color:var(--acc)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:1.5px solid var(--line);background:var(--card);border-radius:999px;padding:8px 14px;min-height:40px;font-weight:600;cursor:pointer}
+.chip[aria-pressed=true]{background:var(--acc);color:var(--acc-fg);border-color:var(--acc)}
+.chip.done::after{content:" ✓"}
+.warn{background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:12px 14px;font-size:.92rem}
+.steps{display:flex;gap:4px}.steps i{flex:1;height:6px;border-radius:3px;background:var(--line)}.steps i.on{background:var(--acc)}.steps i.cur{background:var(--tape)}
+.tag{display:inline-block;font:700 .72rem 'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.08em;padding:2px 8px;border-radius:4px;background:var(--acc-soft);color:var(--fg)}
+.tag.tp{background:var(--tape);color:var(--tape-fg)}
+.ex{border-top:1px solid var(--line);padding:12px 0;display:flex;flex-direction:column;gap:6px}
+.ex:first-of-type{border-top:0}
+.ex .nm{font-weight:600;display:flex;justify-content:space-between;gap:10px}
+.ex .rx{font:700 1.05rem 'Barlow Condensed',sans-serif;letter-spacing:.03em;white-space:nowrap}
+details>summary{cursor:pointer;color:var(--acc);font-weight:600;font-size:.9rem;min-height:32px}
+details ol{margin:6px 0 0;padding-left:22px}details li{margin-bottom:4px}
+.ladder{display:flex;flex-direction:column;gap:6px}
+.stepbar{display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:8px;background:var(--bg);border-left:6px solid var(--line)}
+.stepbar.cur{border-left-color:var(--tape);background:var(--acc-soft);font-weight:600}
+.stepbar.blk{opacity:.55;background:var(--dis)}
+.stepbar .lv{font:700 .8rem 'Barlow Condensed',sans-serif;color:var(--mut);min-width:34px}
+.checkrow{display:flex;gap:10px;align-items:center;min-height:44px}
+.checkrow input{width:22px;height:22px;accent-color:var(--acc)}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:8px;z-index:20;font-weight:600}
+pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;background:var(--bg);padding:12px;border-radius:8px;overflow-x:auto}
+.timeline{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.timeline div{padding:6px 0;border-radius:6px;background:var(--bg);font:700 .8rem 'Barlow Condensed',sans-serif;text-transform:uppercase}
+.timeline .on{background:var(--acc);color:var(--acc-fg)}
+@media (max-width:400px){h1{font-size:1.7rem}.ex .nm{flex-direction:column;gap:2px}}
+@media (prefers-reduced-motion:no-preference){.card{transition:border-color .15s}}
+</style>
+<div id="app"></div>
+<nav class="tabs" id="tabs" role="tablist" aria-label="Sezioni"></nav>
+<script>window.LIB={"equipment":{"rialzo":"Sedia robusta, panca, gradino o tavolo","sbarra":"Sbarra per trazioni","tavolo":"Tavolo molto robusto, sbarra bassa o anelli (per i rematori)","parallele":"Parallele o due supporti stabili","anelli":"Anelli o cinghie di sospensione","elastico":"Elastico di resistenza"},"limits":{"polsi":"Polsi (appoggio sulle mani)","spalle":"Spalle","gomiti":"Gomiti (tendini)","ginocchia":"Ginocchia","schiena":"Zona lombare","salti":"Niente salti e impatti"},"chains":{"push_h":{"label":"Spinta orizzontale","sub":"Push-up e varianti","group":"forza"},"push_v":{"label":"Spinta verticale","sub":"Spalle (pike)","group":"forza","derive":{"frm":"push_h","off":-1}},"dip":{"label":"Dip","sub":"Spinta e tricipiti","group":"forza","derive":{"frm":"push_h","off":-1}},"pull_h":{"label":"Tirata orizzontale","sub":"Rematori","group":"forza"},"pull_v":{"label":"Tirata verticale","sub":"Trazioni","group":"forza"},"squat":{"label":"Squat","sub":"Gambe, due appoggi","group":"forza"},"lunge":{"label":"Gamba singola","sub":"Step-up, affondi, pistol","group":"forza"},"hinge":{"label":"Catena posteriore","sub":"Glutei e femorali","group":"forza"},"core_ext":{"label":"Core: plank e hollow","sub":"Anti-estensione","group":"core"},"core_flex":{"label":"Core: sollevamento gambe","sub":"Flessione d'anca","group":"core","derive":{"frm":"core_ext","off":0}},"core_lat":{"label":"Core: laterale","sub":"Plank laterale","group":"core","derive":{"frm":"core_ext","off":0}},"core_post":{"label":"Core: schiena e stabilità","sub":"Bird dog, superman","group":"core","derive":{"frm":"core_ext","off":0}},"cond":{"label":"Condizionamento","sub":"Cardio e circuiti","group":"cond"},"sk_hs":{"label":"Verticale","sub":"Handstand","group":"skill","prereq":[{"chain":"push_h","min":"push_std"}],"forbid":["polsi","spalle"],"reqmsg":"Servono almeno 8 push-up standard di fila."},"sk_fl":{"label":"Front lever","sub":"Leva frontale","group":"skill","prereq":[{"chain":"pull_v","min":"pv_pull"}],"forbid":["gomiti","spalle"],"reqmsg":"Servono almeno 8 trazioni alla sbarra di fila."},"sk_mu":{"label":"Muscle-up","sub":"Dalla sbarra all'appoggio","group":"skill","prereq":[{"chain":"pull_v","min":"pv_pull"},{"chain":"push_h","min":"push_std"}],"forbid":["gomiti","spalle","polsi"],"reqmsg":"Servono almeno 8 trazioni e 8 push-up standard di fila."},"sk_pl":{"label":"Planche","sub":"Leva in appoggio","group":"skill","prereq":[{"chain":"push_h","min":"push_dec"}],"forbid":["polsi","spalle","gomiti"],"reqmsg":"Servono almeno 15 push-up standard di fila, anche con i piedi rialzati."}},"exercises":[{"id":"push_wall","chain":"push_h","name":"Push-up al muro","lv":0,"kind":"reps","lo":8,"hi":15,"eq":[],"flags":[],"per":false,"focus":"Petto, spalle, tricipiti","steps":["Mettiti di fronte a un muro, a circa un braccio di distanza, con i piedi larghi come i fianchi.","Appoggia i palmi sul muro all'altezza delle spalle, poco più larghi delle spalle.","Piega i gomiti e porta il petto verso il muro, tenendo il corpo in linea dalla testa ai talloni.","Spingi sul muro fino a distendere le braccia."],"ds":null,"note":"Più i piedi sono lontani dal muro, più l'esercizio è difficile."},{"id":"push_inc_hi","chain":"push_h","name":"Push-up inclinato alto","lv":1,"kind":"reps","lo":8,"hi":15,"eq":["rialzo"],"flags":["polsi"],"per":false,"focus":"Petto, spalle, tricipiti","steps":["Metti le mani su una superficie rialzata, come una panca o un gradino, leggermente più larga della larghezza delle spalle.","Estendi le gambe dietro di te, appoggiandole sulle punte dei piedi, creando una linea retta dalla testa ai talloni.","Abbassa il petto verso la superficie rialzata piegando i gomiti, mantenendo il corpo in linea retta.","Fai una pausa per un momento in basso, quindi ritorna alla posizione di partenza raddrizzando le braccia."],"ds":"0493","note":"Mani su un piano alto (tavolo, piano di lavoro). Più è alto, più è facile."},{"id":"push_knee","chain":"push_h","name":"Push-up sulle ginocchia","lv":2,"kind":"reps","lo":6,"hi":15,"eq":[],"flags":["polsi","ginocchia"],"per":false,"focus":"Petto, spalle, tricipiti","steps":["Parti a quattro zampe con le mani sotto le spalle, poi porta le ginocchia indietro fino a formare una linea dalle ginocchia alla testa.","Stringi addome e glutei e tieni i gomiti a circa 45° dal busto.","Scendi finché il petto è vicino al pavimento, senza far cadere il bacino.","Spingi sul pavimento fino a distendere le braccia."],"ds":null,"note":"Usa un tappetino per proteggere le ginocchia."},{"id":"push_inc_lo","chain":"push_h","name":"Push-up inclinato basso","lv":2,"kind":"reps","lo":6,"hi":15,"eq":["rialzo"],"flags":["polsi"],"per":false,"focus":"Petto, spalle, tricipiti","steps":["Metti le mani sul bordo di una scatola o di una superficie rialzata, leggermente più larghe della larghezza delle spalle.","Estendi le gambe dietro di te, appoggiandole sulle punte dei piedi, creando una linea retta dalla testa ai talloni.","Abbassa il petto verso il box piegando i gomiti, mantenendo il corpo in linea retta.","Fai una pausa per un momento in basso, quindi ritorna alla posizione di partenza raddrizzando le braccia."],"ds":"3785","note":"Mani su un gradino o una panca. Più è basso, più è difficile."},{"id":"push_std","chain":"push_h","name":"Push-up","lv":3,"kind":"reps","lo":6,"hi":15,"eq":[],"flags":["polsi"],"per":false,"focus":"Petto, spalle, tricipiti","steps":["Inizia in una posizione di plancia alta con le mani leggermente più larghe della larghezza delle spalle e i piedi uniti.","Coinvolgi il core e abbassa il corpo verso terra piegando i gomiti, mantenendo il corpo in linea retta.","Fai una pausa per un momento quando il petto è appena sopra il suolo, quindi ritorna alla posizione di partenza raddrizzando le braccia."],"ds":"0662"},{"id":"push_dia","chain":"push_h","name":"Push-up a diamante","lv":3,"kind":"reps","lo":5,"hi":12,"eq":[],"flags":["polsi","gomiti"],"per":false,"focus":"Tricipiti, petto","steps":["Inizia in posizione di tavola alta con le mani vicine, formando una forma di diamante con pollici e indici.","Mantieni il corpo in linea retta dalla testa ai piedi, attivando core e glutei.","Abbassa il petto verso la forma a diamante formata dalle mani, tenendo i gomiti vicini al corpo.","Fermati un attimo in fondo, poi risali fino alla posizione iniziale."],"ds":"0283"},{"id":"push_dec","chain":"push_h","name":"Push-up con piedi rialzati","lv":4,"kind":"reps","lo":6,"hi":15,"eq":["rialzo"],"flags":["polsi","spalle"],"per":false,"focus":"Petto alto, spalle","steps":["Appoggia le mani a terra, leggermente più larghe della larghezza delle spalle, con i piedi sollevati su una superficie stabile.","Mantieni il corpo in linea retta dalla testa ai piedi, attivando i muscoli del core.","Abbassa il petto verso il suolo piegando i gomiti, tenendoli vicini al corpo.","Spingi attraverso i palmi per estendere le braccia e tornare alla posizione iniziale."],"ds":"0279"},{"id":"push_arc","chain":"push_h","name":"Archer push-up","lv":4,"kind":"reps","lo":4,"hi":10,"eq":[],"flags":["polsi","spalle","gomiti"],"per":true,"focus":"Petto, tricipiti (un lato alla volta)","steps":["Inizia in una posizione push-up con le mani leggermente più larghe della larghezza delle spalle.","Estendi un braccio di lato, parallelo al suolo.","Abbassa il corpo piegando i gomiti, mantenendo la schiena dritta e il core impegnato.","Spingi indietro fino alla posizione di partenza.","Continua ad alternare i lati per il numero di ripetizioni desiderato."],"ds":"3294"},{"id":"pv_pike_el","chain":"push_v","name":"Pike push-up con mani rialzate","lv":2,"kind":"reps","lo":5,"hi":10,"eq":["rialzo"],"flags":["polsi","spalle"],"per":false,"focus":"Spalle, tricipiti","steps":["Metti le mani su un rialzo stabile, larghe come le spalle, e porta i piedi indietro con i fianchi alti: il corpo forma una V rovesciata.","Piega i gomiti portando la testa verso il rialzo, tra le mani.","Spingi fino a distendere le braccia, mantenendo i fianchi alti."],"ds":null},{"id":"pv_pike","chain":"push_v","name":"Pike push-up","lv":3,"kind":"reps","lo":5,"hi":12,"eq":[],"flags":["polsi","spalle"],"per":false,"focus":"Spalle, tricipiti","steps":["Mani a terra larghe come le spalle, piedi indietro e fianchi alti: il corpo forma una V rovesciata.","Piega i gomiti e porta la testa verso il pavimento, davanti alle mani.","Spingi sulle mani fino a distendere le braccia, con le gambe quasi tese."],"ds":null},{"id":"pv_pike_feet","chain":"push_v","name":"Pike push-up con piedi rialzati","lv":4,"kind":"reps","lo":4,"hi":10,"eq":["rialzo"],"flags":["polsi","spalle"],"per":false,"focus":"Spalle, tricipiti","steps":["Come il pike push-up, ma con i piedi appoggiati su un rialzo stabile: il peso passa sulle spalle.","Scendi con la testa davanti alle mani, gomiti a circa 45°.","Spingi fino a distendere le braccia."],"ds":null,"note":"Più i piedi sono alti, più è difficile."},{"id":"dip_bench","chain":"dip","name":"Dip su panca","lv":2,"kind":"reps","lo":5,"hi":12,"eq":["rialzo"],"flags":["spalle","gomiti","polsi"],"per":false,"focus":"Tricipiti","steps":["Siediti sul bordo di una panca o di una sedia con le mani che stringono il bordo accanto ai fianchi.","Fai scivolare il sedere fuori dalla panca e raddrizzare le gambe davanti a te, tenendo i talloni a terra.","Piega i gomiti e abbassa il corpo verso terra, tenendo la schiena vicina alla panca.","Fermati un attimo in fondo, poi risali fino alla posizione iniziale."],"ds":"0129","note":"Scendi poco: se senti fastidio davanti alla spalla, scegli i push-up."},{"id":"dip_par","chain":"dip","name":"Dip alle parallele","lv":3,"kind":"reps","lo":5,"hi":12,"eq":["parallele"],"flags":["spalle","gomiti"],"per":false,"focus":"Petto basso, tricipiti","steps":["Posizionati sulle barre parallele con le braccia completamente estese e il corpo dritto.","Abbassa il corpo piegando i gomiti finché le spalle non saranno sotto i gomiti.","Spingi di nuovo verso la posizione iniziale raddrizzando le braccia."],"ds":"0251","note":"Scendi solo fino a una profondità comoda per le spalle."},{"id":"dip_ring","chain":"dip","name":"Dip agli anelli","lv":5,"kind":"reps","lo":4,"hi":10,"eq":["anelli"],"flags":["spalle","gomiti"],"per":false,"focus":"Petto, tricipiti, spalle","steps":["Inizia appendendoti agli anelli con le braccia completamente distese e il corpo dritto.","Abbassa il corpo piegando i gomiti finché le spalle non sono sotto i gomiti.","Spingiti indietro fino alla posizione di partenza raddrizzando le braccia."],"ds":"0677"},{"id":"ph_ywt","chain":"pull_h","name":"Y-T-W a pancia in giù","lv":0,"kind":"reps","lo":5,"hi":10,"eq":[],"flags":[],"per":false,"focus":"Scapole, schiena alta","steps":["Sdraiati a pancia in giù con la fronte appoggiata, braccia lungo il corpo.","Solleva leggermente il petto e porta le braccia in Y sopra la testa, poi in T ai lati, poi in W con i gomiti piegati.","Muoviti piano stringendo le scapole, senza inarcare la zona lombare e senza forzare il collo.","Una Y, una T e una W contano come una ripetizione."],"ds":null},{"id":"ph_row_bent","chain":"pull_h","name":"Rematore inverso con ginocchia piegate","lv":1,"kind":"reps","lo":6,"hi":15,"eq":["tavolo"],"flags":["gomiti"],"per":false,"focus":"Dorsali, bicipiti","steps":["Sdraiati sotto una sbarra bassa o un tavolo molto robusto e afferra il bordo con le mani poco più larghe delle spalle.","Piega le ginocchia e appoggia i piedi a terra, con il corpo in linea dalle spalle alle ginocchia.","Tira il petto verso il bordo stringendo le scapole, poi scendi con controllo."],"ds":null,"note":"Verifica che il tavolo sia stabile e non possa ribaltarsi."},{"id":"ph_row","chain":"pull_h","name":"Rematore inverso","lv":2,"kind":"reps","lo":6,"hi":15,"eq":["tavolo"],"flags":["gomiti"],"per":false,"focus":"Dorsali, bicipiti","steps":["Installa una barra all'altezza della vita o usa un trainer per le sospensioni.","Mettiti di fronte alla barra o al trainer in sospensione, con i piedi alla larghezza delle spalle.","Afferra la barra o le maniglie con una presa prona, leggermente più larga della larghezza delle spalle.","Appoggiati all'indietro, mantenendo il corpo dritto e i talloni a terra.","Tira il petto verso la barra o le maniglie, stringendo insieme le scapole.","Fermati per un momento in alto, quindi abbassati lentamente nella posizione di partenza."],"ds":"0499"},{"id":"ph_row_feet","chain":"pull_h","name":"Rematore inverso con piedi rialzati","lv":3,"kind":"reps","lo":6,"hi":12,"eq":["tavolo","rialzo"],"flags":["gomiti"],"per":false,"focus":"Dorsali, bicipiti","steps":["Come il rematore inverso, ma con i talloni appoggiati su un rialzo stabile.","Tieni il corpo rigido in linea retta e tira il petto verso la sbarra.","Scendi senza far cedere i fianchi."],"ds":null},{"id":"ph_row_arch","chain":"pull_h","name":"Archer row agli anelli","lv":4,"kind":"reps","lo":4,"hi":10,"eq":["anelli"],"flags":["gomiti","spalle"],"per":true,"focus":"Dorsali, bicipiti (un lato alla volta)","steps":["Appeso agli anelli con il corpo inclinato e presa larga.","Tira il petto verso una mano mentre l'altro braccio resta quasi disteso e fa da supporto.","Torna al centro e alterna i lati."],"ds":null},{"id":"pv_hang","chain":"pull_v","name":"Appeso attivo","lv":1,"kind":"time","lo":15,"hi":40,"eq":["sbarra"],"flags":["spalle"],"per":false,"focus":"Presa, spalle","steps":["Appenditi alla sbarra a braccia distese, con le mani larghe come le spalle o poco più.","Spingi le spalle lontano dalle orecchie (scapole verso il basso) senza piegare i gomiti.","Respira con regolarità. Scendi se senti dolore alla spalla o formicolio alle mani."],"ds":null},{"id":"pv_scap","chain":"pull_v","name":"Scapular pull-up","lv":1,"kind":"reps","lo":5,"hi":10,"eq":["sbarra"],"flags":["spalle"],"per":false,"focus":"Dorsali, scapole","steps":["Appenditi alla sbarra a braccia distese.","Senza piegare i gomiti, porta le scapole verso il basso: il corpo sale di pochi centimetri.","Torna lentamente in posizione di partenza."],"ds":null},{"id":"pv_neg","chain":"pull_v","name":"Trazione negativa","lv":2,"kind":"reps","lo":3,"hi":6,"eq":["sbarra"],"flags":["gomiti","spalle"],"per":false,"focus":"Dorsali, bicipiti","steps":["Sali alla posizione alta, con il mento sopra la sbarra, con un salto o con l'aiuto di un rialzo.","Scendi lentamente in 3-5 secondi, fino ad avere le braccia quasi distese.","Torna in alto con l'aiuto del rialzo, non con la forza dal basso."],"ds":null},{"id":"pv_band","chain":"pull_v","name":"Trazione assistita con elastico","lv":2,"kind":"reps","lo":4,"hi":10,"eq":["sbarra","elastico"],"flags":["gomiti","spalle"],"per":false,"focus":"Dorsali, bicipiti","steps":["Fissa un elastico robusto alla sbarra e infilaci un piede o un ginocchio.","Parti appeso a braccia distese e tira fino a portare il mento sopra la sbarra.","Scendi con controllo. Passa a un elastico più sottile quando diventa facile."],"ds":null},{"id":"pv_chin","chain":"pull_v","name":"Chin-up","lv":3,"kind":"reps","lo":3,"hi":10,"eq":["sbarra"],"flags":["gomiti","spalle"],"per":false,"focus":"Dorsali, bicipiti","steps":["Appenditi a una barra per trazioni con i palmi rivolti verso di te e le mani distanti alla larghezza delle spalle.","Attiva il core e tira il corpo verso la barra, iniziando con il petto.","Continua a tirare finché il mento non è sopra il bilanciere.","Fermati un attimo in cima, poi abbassa lentamente il corpo fino alla posizione iniziale."],"ds":"1326"},{"id":"pv_pull","chain":"pull_v","name":"Trazione alla sbarra","lv":3,"kind":"reps","lo":3,"hi":10,"eq":["sbarra"],"flags":["gomiti","spalle"],"per":false,"focus":"Dorsali, bicipiti","steps":["Appendi a una barra per trazioni con i palmi delle mani rivolti lontano da te e le braccia completamente distese.","Coinvolgi il tuo core e stringi insieme le scapole.","Tira il corpo verso la sbarra piegando i gomiti e portando il petto verso la sbarra.","Fai una pausa nella parte superiore del movimento, quindi abbassa lentamente il corpo fino alla posizione iniziale."],"ds":"0652"},{"id":"pv_wide","chain":"pull_v","name":"Trazione a presa larga","lv":4,"kind":"reps","lo":3,"hi":10,"eq":["sbarra"],"flags":["gomiti","spalle"],"per":false,"focus":"Dorsali","steps":["Appendi a una barra per trazioni con i palmi rivolti lontano da te e le mani più larghe della larghezza delle spalle.","Coinvolgi il tuo core e stringi insieme le scapole.","Tira il corpo verso la barra finché il mento non è sopra la barra.","Abbassa il corpo nella posizione iniziale mantenendo il controllo."],"ds":"1429"},{"id":"pv_arch","chain":"pull_v","name":"Archer pull-up","lv":5,"kind":"reps","lo":2,"hi":6,"eq":["sbarra"],"flags":["gomiti","spalle"],"per":true,"focus":"Dorsali, bicipiti (un lato alla volta)","steps":["Inizia appendendoti a una barra per trazioni con una presa prona, leggermente più larga della larghezza delle spalle.","Coinvolgi il tuo core e tira le scapole verso il basso e all'indietro.","Mentre ti tiri su, piega un braccio e porta il gomito verso il fianco, mantenendo l'altro braccio dritto.","Continua a tirare finché il mento non è sopra la barra e il braccio piegato è completamente flesso.","Abbassati di nuovo con controllo, raddrizzando il braccio piegato e ripetendo il movimento dall'altro lato.","Lati alternativi ad ogni ripetizione."],"ds":"3293"},{"id":"sq_sit","chain":"squat","name":"Alzarsi dalla sedia","lv":0,"kind":"reps","lo":6,"hi":15,"eq":["rialzo"],"flags":[],"per":false,"focus":"Gambe, glutei","steps":["Siediti sul bordo di una sedia stabile, con i piedi larghi come le spalle e ben appoggiati.","Spingi sui piedi e alzati in piedi con il busto inclinato in avanti, senza aiutarti con le mani se riesci.","Risiediti lentamente in 2-3 secondi."],"ds":null},{"id":"sq_bw","chain":"squat","name":"Squat a corpo libero","lv":1,"kind":"reps","lo":8,"hi":20,"eq":[],"flags":["ginocchia"],"per":false,"focus":"Gambe, glutei","steps":["Piedi larghi come le spalle, punte leggermente aperte.","Scendi spingendo i fianchi indietro e piegando le ginocchia, con il petto alto e le ginocchia nella direzione delle punte dei piedi.","Scendi fin dove mantieni la schiena neutra e i talloni a terra, poi spingi per risalire."],"ds":null},{"id":"sq_pause","chain":"squat","name":"Squat con pausa in basso","lv":2,"kind":"reps","lo":6,"hi":15,"eq":[],"flags":["ginocchia"],"per":false,"focus":"Gambe, glutei","steps":["Esegui lo squat come di consueto, con il petto alto e i talloni a terra.","Fermati 2 secondi nella posizione più bassa che controlli bene.","Spingi sui piedi per risalire senza rimbalzare."],"ds":null},{"id":"sq_tempo","chain":"squat","name":"Squat con discesa lenta","lv":3,"kind":"reps","lo":6,"hi":15,"eq":[],"flags":["ginocchia"],"per":false,"focus":"Gambe, glutei","steps":["Scendi in 3 secondi, tenendo il petto alto e i talloni a terra.","Fermati 1 secondo in basso.","Risali con decisione."],"ds":null},{"id":"lu_step","chain":"lunge","name":"Step-up su gradino","lv":1,"kind":"reps","lo":6,"hi":12,"eq":["rialzo"],"flags":["ginocchia"],"per":true,"focus":"Gambe, glutei","steps":["Appoggia un piede su un gradino o una sedia stabile (altezza massima: il ginocchio).","Spingi con la gamba sul gradino per salire, senza darti la spinta con l'altra gamba.","Scendi lentamente. Finite le ripetizioni, cambia gamba."],"ds":null},{"id":"lu_split","chain":"lunge","name":"Affondo statico","lv":2,"kind":"reps","lo":6,"hi":12,"eq":[],"flags":["ginocchia"],"per":true,"focus":"Gambe, glutei","steps":["Stai con i piedi alla larghezza delle spalle.","Fai un passo avanti con un piede e posizionalo a circa mezzo metro davanti all'altro piede.","Abbassa il corpo piegando le ginocchia e le anche, mantenendo la schiena dritta.","Continua ad abbassarti finché la coscia anteriore non è parallela al suolo e il ginocchio posteriore si libra appena sopra il suolo.","Fai una pausa per un momento, quindi spingi il tallone anteriore per tornare alla posizione di partenza."],"ds":"2368"},{"id":"lu_fwd","chain":"lunge","name":"Affondo in avanti alternato","lv":2,"kind":"reps","lo":6,"hi":12,"eq":[],"flags":["ginocchia"],"per":true,"focus":"Gambe, glutei","steps":["Stai in piedi con i piedi alla larghezza dei fianchi e le mani sui fianchi.","Fai un grande passo avanti con il piede destro, abbassando il corpo in una posizione di affondo.","Piega il ginocchio destro a circa 90 gradi, mantenendo il ginocchio allineato con la caviglia.","Spingi con il piede destro e torna alla posizione di partenza."],"ds":"3470"},{"id":"lu_walk","chain":"lunge","name":"Affondo camminato","lv":3,"kind":"reps","lo":8,"hi":16,"eq":[],"flags":["ginocchia"],"per":true,"focus":"Gambe, glutei","steps":["Stai con i piedi alla larghezza delle spalle.","Fai un passo avanti con la gamba destra, abbassando il corpo in una posizione di affondo.","Mantieni il busto in posizione verticale e il ginocchio anteriore allineato con la caviglia.","Spingi con il piede destro e porta il piede sinistro in avanti, assumendo una posizione di affondo con la gamba sinistra.","Continua ad alternare le gambe e a camminare in avanti, mantenendo un ritmo controllato e costante."],"ds":"1460","note":"Serve spazio per camminare in avanti."},{"id":"lu_curt","chain":"lunge","name":"Curtsey squat","lv":3,"kind":"reps","lo":6,"hi":12,"eq":[],"flags":["ginocchia"],"per":true,"focus":"Glutei, gambe","steps":["Stai con i piedi a larghezza delle spalle.","Fai un passo diagonalmente dietro e attraverso il corpo con il piede destro, incrociandolo dietro la gamba sinistra.","Piega entrambe le ginocchia come se stessi facendo un inchino, abbassando il corpo verso terra.","Mantieni il busto eretto e il peso sul piede anteriore.","Spingi con il piede anteriore per tornare alla posizione di partenza."],"ds":"3769"},{"id":"lu_bulg","chain":"lunge","name":"Squat bulgaro","lv":3,"kind":"reps","lo":5,"hi":12,"eq":["rialzo"],"flags":["ginocchia"],"per":true,"focus":"Gambe, glutei","steps":["Appoggia il collo del piede posteriore su una sedia o una panca stabile dietro di te.","Scendi in verticale con il ginocchio anteriore sopra la caviglia e il busto leggermente inclinato in avanti.","Spingi sul piede anteriore per risalire. Finite le ripetizioni, cambia gamba."],"ds":null},{"id":"lu_shrimp","chain":"lunge","name":"Shrimp squat","lv":4,"kind":"reps","lo":3,"hi":8,"eq":[],"flags":["ginocchia"],"per":true,"focus":"Gambe, glutei, equilibrio","steps":["In piedi su una gamba, piega l'altra dietro di te e tienine il piede con la mano dello stesso lato.","Scendi finché il ginocchio posteriore sfiora il pavimento, con il busto inclinato in avanti per bilanciarti.","Risali spingendo con la gamba d'appoggio. Tieniti a un sostegno se perdi l'equilibrio."],"ds":null},{"id":"lu_pistol_as","chain":"lunge","name":"Pistol squat assistito","lv":4,"kind":"reps","lo":3,"hi":8,"eq":[],"flags":["ginocchia"],"per":true,"focus":"Gambe, glutei, equilibrio","steps":["Stai in piedi su una gamba vicino a un sostegno stabile (maniglia, anelli, stipite) e tienilo con una o due mani.","Estendi in avanti l'altra gamba e scendi lentamente piegando il ginocchio d'appoggio.","Risali spingendo sul tallone, aiutandoti il meno possibile con le mani."],"ds":null},{"id":"lu_pistol","chain":"lunge","name":"Pistol squat","lv":5,"kind":"reps","lo":2,"hi":6,"eq":[],"flags":["ginocchia"],"per":true,"focus":"Gambe, glutei, equilibrio","steps":["Stai con i piedi alla larghezza delle spalle e le braccia distese davanti a te.","Solleva il piede destro da terra ed estendilo in avanti.","Abbassa lentamente il corpo piegando il ginocchio sinistro e spingendo indietro i fianchi.","Tieni il petto in alto e la schiena dritta mentre ti abbassi.","Abbassati finché la coscia sinistra non è parallela al suolo o il più in basso possibile.","Fermati per un momento in basso, quindi spingi attraverso il tallone sinistro per tornare alla posizione di partenza."],"ds":"1759"},{"id":"hi_bridge","chain":"hinge","name":"Ponte glutei a terra","lv":0,"kind":"reps","lo":8,"hi":20,"eq":[],"flags":[],"per":false,"focus":"Glutei, femorali","steps":["Sdraiati sulla schiena con le ginocchia piegate e i piedi appoggiati a terra.","Metti le braccia lungo i fianchi, i palmi rivolti verso il basso.","Coinvolgi i glutei e il core, quindi solleva i fianchi da terra finché il tuo corpo non forma una linea retta dalle ginocchia alle spalle.","Fermati un attimo in alto, contraendo i glutei.","Abbassa lentamente i fianchi fino alla posizione iniziale."],"ds":"3013"},{"id":"hi_march","chain":"hinge","name":"Ponte glutei con marcia","lv":1,"kind":"reps","lo":6,"hi":16,"eq":[],"flags":[],"per":false,"focus":"Glutei, core","steps":["Sdraiati sulla schiena con le ginocchia piegate e i piedi appoggiati a terra.","Coinvolgi i glutei e solleva i fianchi da terra, formando una linea retta dalle ginocchia alle spalle.","Tenendo i fianchi sollevati, solleva un piede da terra e avvicina il ginocchio al petto.","Riporta il piede a terra e ripeti il ​​movimento con l'altra gamba.","Continua ad alternare le gambe in un movimento di marcia mantenendo la posizione del ponte."],"ds":"3561"},{"id":"hi_single","chain":"hinge","name":"Ponte glutei a una gamba","lv":2,"kind":"reps","lo":6,"hi":15,"eq":[],"flags":[],"per":true,"focus":"Glutei, femorali","steps":["Sdraiati sulla schiena con le ginocchia piegate e i piedi appoggiati a terra.","Estendi una gamba davanti a te.","Coinvolgi i glutei e solleva i fianchi da terra, formando una linea retta dalle ginocchia alle spalle.","Mantieni la posizione in alto per un momento, quindi abbassa lentamente i fianchi fino alla posizione iniziale."],"ds":"3645"},{"id":"hi_slider","chain":"hinge","name":"Curl femorale con asciugamano","lv":3,"kind":"reps","lo":6,"hi":12,"eq":[],"flags":[],"per":false,"focus":"Femorali, glutei","steps":["Sdraiato sulla schiena, ginocchia piegate, con i talloni su un asciugamano o un calzino su un pavimento liscio.","Solleva il bacino, poi fai scivolare i talloni in avanti distendendo le gambe, restando con il bacino alto.","Riporta i talloni verso i glutei con controllo. Se senti un crampo, accorcia l'escursione."],"ds":null},{"id":"hi_single_el","chain":"hinge","name":"Ponte a una gamba con piede rialzato","lv":3,"kind":"reps","lo":6,"hi":12,"eq":["rialzo"],"flags":[],"per":true,"focus":"Glutei, femorali","steps":["Sdraiato sulla schiena con un piede appoggiato su un rialzo stabile e l'altra gamba tesa in aria.","Spingi sul piede d'appoggio e solleva il bacino fino a formare una linea dalla spalla al ginocchio.","Scendi lentamente senza appoggiare il bacino. Finite le ripetizioni, cambia gamba."],"ds":null},{"id":"hi_slider1","chain":"hinge","name":"Curl femorale a una gamba con asciugamano","lv":4,"kind":"reps","lo":4,"hi":10,"eq":[],"flags":[],"per":true,"focus":"Femorali, glutei","steps":["Sdraiato sulla schiena con un tallone su un asciugamano su pavimento liscio e l'altra gamba sollevata.","Solleva il bacino, poi fai scivolare il tallone in avanti fino a distendere la gamba.","Torna indietro con controllo mantenendo il bacino alto. Se senti un crampo, accorcia l'escursione."],"ds":null},{"id":"ce_deadbug","chain":"core_ext","name":"Dead bug","lv":0,"kind":"reps","lo":6,"hi":12,"eq":[],"flags":[],"per":true,"focus":"Addome profondo","steps":["Sdraiati sulla schiena con le braccia tese verso il soffitto.","Piega le ginocchia e solleva le gambe da terra, creando un angolo di 90 gradi tra fianchi e ginocchia.","Attiva il core e la parte bassa della schiena per premere la parte bassa della schiena contro il terreno.","Abbassa lentamente il braccio destro e la gamba sinistra verso terra, mantenendoli dritti e sospesi appena sopra il pavimento.","Fermati un attimo, poi torna alla posizione iniziale.","Continua ad alternare i lati per il numero desiderato di ripetizioni."],"ds":"0276"},{"id":"ce_plank_k","chain":"core_ext","name":"Plank sulle ginocchia","lv":1,"kind":"time","lo":15,"hi":40,"eq":[],"flags":[],"per":false,"focus":"Addome","steps":["Avambracci a terra con i gomiti sotto le spalle, ginocchia appoggiate.","Linea retta dalle ginocchia alla testa, glutei e addome contratti.","Respira con regolarità e non far cadere il bacino."],"ds":null},{"id":"ce_plank","chain":"core_ext","name":"Plank sugli avambracci","lv":2,"kind":"time","lo":20,"hi":60,"eq":[],"flags":[],"per":false,"focus":"Addome","steps":["Avambracci a terra con i gomiti sotto le spalle, piedi larghi come i fianchi.","Corpo in linea retta dalla testa ai talloni, glutei e addome contratti.","Non inarcare la schiena e non alzare troppo il bacino. Respira."],"ds":null},{"id":"ce_plank_tap","chain":"core_ext","name":"Plank con tocco della spalla","lv":3,"kind":"reps","lo":8,"hi":20,"eq":[],"flags":["polsi","spalle"],"per":false,"focus":"Addome, spalle","steps":["Parti in plank alto con le mani sotto le spalle e i piedi larghi.","Tocca la spalla opposta con una mano, senza ruotare il bacino.","Alterna i lati. Più larghi sono i piedi, più è facile restare stabili."],"ds":null},{"id":"ce_hollow","chain":"core_ext","name":"Hollow body hold","lv":3,"kind":"time","lo":15,"hi":40,"eq":[],"flags":["schiena"],"per":false,"focus":"Addome","steps":["Sdraiato sulla schiena con braccia sopra la testa e gambe tese.","Solleva spalle e gambe da terra, con la schiena bassa ben appoggiata al pavimento.","Se la zona lombare si stacca da terra, piega le ginocchia o alza meno le gambe."],"ds":null},{"id":"ce_hollow_rock","chain":"core_ext","name":"Hollow rock","lv":4,"kind":"reps","lo":8,"hi":20,"eq":[],"flags":["schiena"],"per":false,"focus":"Addome","steps":["Parti in posizione hollow body, con la schiena bassa a terra.","Dondola avanti e indietro come una barca, mantenendo la forma rigida.","Interrompi se la zona lombare si stacca da terra."],"ds":null},{"id":"ce_lsit","chain":"core_ext","name":"L-sit a terra","lv":4,"kind":"time","lo":5,"hi":20,"eq":[],"flags":["polsi","spalle"],"per":false,"focus":"Addome, tricipiti, spalle","steps":["Siediti sul pavimento con le gambe distese davanti a te.","Metti le mani sul pavimento accanto ai fianchi, con le dita rivolte in avanti.","Coinvolgi il tuo core e solleva le gambe da terra, mantenendole dritte.","Cerca di portare le gambe parallele al pavimento, formando una \"L\" con il tuo corpo.","Mantieni questa posizione il più a lungo possibile.","Abbassa lentamente le gambe fino alla posizione di partenza."],"ds":"3419"},{"id":"ce_dragon","chain":"core_ext","name":"Dragon flag negativo","lv":5,"kind":"reps","lo":2,"hi":6,"eq":["rialzo"],"flags":["schiena","spalle"],"per":false,"focus":"Addome, schiena","steps":["Sdraiato su una panca stabile, afferra il bordo dietro la testa.","Parti con il corpo teso e sollevato, appoggiato solo sulle spalle.","Scendi lentamente in 4-5 secondi senza piegarti ai fianchi. Fermati se senti dolore al collo o alla schiena."],"ds":null},{"id":"cf_lying","chain":"core_flex","name":"Sollevamento gambe da sdraiato","lv":1,"kind":"reps","lo":6,"hi":15,"eq":[],"flags":["schiena"],"per":false,"focus":"Addome basso","steps":["Sdraiati sulla schiena con le gambe distese e le braccia lungo i fianchi.","Metti le mani sotto i glutei per supporto.","Coinvolgi il tuo core e solleva le gambe da terra, sollevandole verso il soffitto.","Fai una pausa per un momento in alto, quindi abbassa lentamente le gambe fino alla posizione di partenza."],"ds":"0865"},{"id":"cf_hang_knee","chain":"core_flex","name":"Alzate delle ginocchia alla sbarra","lv":2,"kind":"reps","lo":5,"hi":12,"eq":["sbarra"],"flags":["spalle"],"per":false,"focus":"Addome basso","steps":["Appendi a una barra per trazioni con le braccia completamente distese e i palmi rivolti lontano da te.","Coinvolgi il core e solleva le gambe flettendo i fianchi e le ginocchia finché le cosce non sono parallele al suolo.","Fai una pausa per un momento in alto, quindi abbassa lentamente le gambe fino alla posizione di partenza."],"ds":"1764"},{"id":"cf_hang_leg","chain":"core_flex","name":"Alzate delle gambe alla sbarra","lv":3,"kind":"reps","lo":4,"hi":12,"eq":["sbarra"],"flags":["spalle"],"per":false,"focus":"Addome, flessori dell'anca","steps":["Appendi a una barra per trazioni con le braccia completamente distese e i palmi rivolti lontano da te.","Coinvolgi il tuo core e solleva le gambe davanti a te, mantenendole dritte.","Continua a sollevare finché le gambe non sono parallele al suolo o il più in alto possibile.","Fai una pausa per un momento in alto, quindi abbassa lentamente le gambe fino alla posizione di partenza."],"ds":"0472"},{"id":"cf_hang_str","chain":"core_flex","name":"Alzate delle gambe tese alla sbarra","lv":4,"kind":"reps","lo":4,"hi":10,"eq":["sbarra"],"flags":["spalle"],"per":false,"focus":"Addome, flessori dell'anca","steps":["Appendi a una barra per trazioni con le braccia completamente distese e i palmi rivolti lontano da te.","Coinvolgi il tuo core e solleva le gambe davanti a te, mantenendole dritte.","Continua a sollevare finché le gambe non sono parallele al suolo o il più in alto possibile.","Fai una pausa per un momento in alto, quindi abbassa lentamente le gambe fino alla posizione di partenza."],"ds":"0475"},{"id":"cf_ttb","chain":"core_flex","name":"Toes to bar","lv":5,"kind":"reps","lo":3,"hi":8,"eq":["sbarra"],"flags":["spalle"],"per":false,"focus":"Addome, dorsali","steps":["Appeso alla sbarra, braccia distese e spalle attive.","Solleva le gambe tese fino a toccare la sbarra con le punte dei piedi.","Scendi lentamente, senza dondolare."],"ds":null},{"id":"cl_side_k","chain":"core_lat","name":"Plank laterale sulle ginocchia","lv":1,"kind":"time","lo":15,"hi":30,"eq":[],"flags":[],"per":true,"focus":"Obliqui","steps":["Sdraiati su un fianco con l'avambraccio a terra, gomito sotto la spalla e ginocchia piegate a 90°.","Solleva i fianchi fino a formare una linea dalle ginocchia alla testa.","Mantieni la posizione, poi cambia lato."],"ds":null},{"id":"cl_side","chain":"core_lat","name":"Plank laterale","lv":2,"kind":"time","lo":20,"hi":45,"eq":[],"flags":[],"per":true,"focus":"Obliqui","steps":["Sdraiati su un fianco con le gambe distese e impilate una sopra l'altra.","Posiziona l'avambraccio a terra direttamente sotto la spalla, con il gomito piegato con un angolo di 90 gradi.","Coinvolgi il tuo core e solleva i fianchi da terra, creando una linea retta dalla testa ai piedi.","Mantieni questa posizione per il tempo desiderato.","Abbassa i fianchi fino alla posizione di partenza."],"ds":"0705"},{"id":"cl_side_lift","chain":"core_lat","name":"Plank laterale con sollevamento della gamba","lv":3,"kind":"reps","lo":6,"hi":12,"eq":[],"flags":[],"per":true,"focus":"Obliqui, glutei","steps":["Inizia sdraiandoti su un fianco con le gambe distese e impilate una sopra l'altra.","Appoggiati sull'avambraccio, mantenendo il gomito direttamente sotto la spalla.","Coinvolgi il tuo core e solleva i fianchi da terra, creando una linea retta dalla testa ai piedi.","Mantenendo la posizione della plancia laterale, solleva la gamba superiore verso il soffitto, mantenendola dritta.","Abbassa lentamente la gamba fino alla posizione di partenza."],"ds":"1775"},{"id":"cl_pu_side","chain":"core_lat","name":"Push-up con rotazione in plank laterale","lv":4,"kind":"reps","lo":4,"hi":10,"eq":[],"flags":["polsi","spalle"],"per":true,"focus":"Obliqui, petto","steps":["Inizia in una posizione push-up con le mani alla larghezza delle spalle e il corpo in linea retta.","Abbassa il corpo verso terra piegando i gomiti, mantenendo il core impegnato.","Spingi indietro fino alla posizione di partenza.","Sposta il peso sulla mano sinistra e ruota il corpo verso destra, sollevando il braccio destro verso il soffitto.","Mantieni la posizione della plancia laterale per alcuni secondi, quindi torna alla posizione di partenza.","Continua ad alternare i lati per il numero di ripetizioni desiderato."],"ds":"0664"},{"id":"cp_bird","chain":"core_post","name":"Bird dog","lv":0,"kind":"reps","lo":6,"hi":12,"eq":[],"flags":[],"per":true,"focus":"Schiena, core","steps":["Parti a quattro zampe con le mani sotto le spalle e le ginocchia sotto i fianchi.","Estendi un braccio in avanti e la gamba opposta indietro, senza ruotare il bacino né inarcare la schiena.","Tieni 2 secondi, torna e cambia lato."],"ds":null},{"id":"cp_super","chain":"core_post","name":"Superman","lv":1,"kind":"reps","lo":6,"hi":12,"eq":[],"flags":["schiena"],"per":false,"focus":"Schiena","steps":["Sdraiati a pancia in giù con le braccia in avanti e le gambe distese.","Solleva leggermente braccia, petto e gambe da terra, guardando il pavimento.","Tieni 1-2 secondi e scendi. Non forzare l'inarcamento della zona lombare."],"ds":null},{"id":"cp_rev","chain":"core_post","name":"Plank inverso con sollevamento della gamba","lv":3,"kind":"reps","lo":6,"hi":12,"eq":[],"flags":["polsi","spalle"],"per":true,"focus":"Glutei, schiena, core","steps":["Siediti a terra con le gambe distese davanti a te e le mani appoggiate a terra dietro di te, con le dita rivolte verso i tuoi piedi.","Premi tra le mani e solleva i fianchi da terra, arrivando in una posizione di plancia inversa.","Coinvolgi il core e solleva una gamba da terra, estendendola verso il soffitto.","Mantieni la posizione per un momento, quindi abbassa nuovamente la gamba.","Continua ad alternare le gambe per il numero di ripetizioni desiderato."],"ds":"3663"},{"id":"cd_march","chain":"cond","name":"Marcia sul posto con ginocchia alte","lv":0,"kind":"time","lo":30,"hi":60,"eq":[],"flags":[],"per":false,"focus":"Cardio","steps":["Cammina sul posto sollevando le ginocchia a un'altezza comoda e muovendo le braccia a ritmo.","Respira in modo regolare: devi riuscire a parlare."],"ds":null},{"id":"cd_stepjack","chain":"cond","name":"Step jack senza salto","lv":1,"kind":"time","lo":30,"hi":60,"eq":[],"flags":[],"per":false,"focus":"Cardio","steps":["Parti in piedi con i piedi uniti.","Fai un passo laterale con un piede mentre sollevi le braccia sopra la testa, poi torna al centro.","Alterna i lati a ritmo costante, senza saltare."],"ds":null},{"id":"cd_burpee_lite","chain":"cond","name":"Burpee semplificato","lv":2,"kind":"reps","lo":5,"hi":12,"eq":[],"flags":["polsi","ginocchia"],"per":false,"focus":"Cardio, tutto il corpo","steps":["In piedi, scendi in squat e appoggia le mani a terra.","Porta un piede alla volta indietro fino alla posizione di plank alto.","Riporta i piedi vicino alle mani uno alla volta e rialzati con le braccia in alto. Niente salto e niente push-up."],"ds":null},{"id":"cd_mountain","chain":"cond","name":"Mountain climber","lv":2,"kind":"time","lo":20,"hi":45,"eq":[],"flags":["polsi","spalle"],"per":false,"focus":"Cardio, core","steps":["Inizia in una posizione di plancia alta con le mani direttamente sotto le spalle e il corpo in linea retta.","Coinvolgi il core e porta il ginocchio destro verso il petto, quindi cambia rapidamente e porta il ginocchio sinistro verso il petto.","Continua ad alternare le gambe con un movimento di corsa, mantenendo i fianchi bassi e il core impegnato.","Mantieni un ritmo costante e respira in modo uniforme durante l'esercizio."],"ds":"0630"},{"id":"cd_jacks","chain":"cond","name":"Jumping jack","lv":2,"kind":"time","lo":30,"hi":60,"eq":[],"flags":["salti"],"per":false,"focus":"Cardio","steps":["Parti in piedi con i piedi uniti e le braccia lungo i fianchi.","Salta divaricando le gambe e portando le braccia sopra la testa, poi torna alla posizione iniziale.","Atterra morbido sulle punte dei piedi, con le ginocchia leggermente piegate."],"ds":null},{"id":"cd_bear","chain":"cond","name":"Bear crawl","lv":3,"kind":"time","lo":20,"hi":40,"eq":[],"flags":["polsi","spalle"],"per":false,"focus":"Cardio, spalle, core","steps":["Inizia a quattro zampe con le mani direttamente sotto le spalle e le ginocchia sotto i fianchi.","Alza leggermente le ginocchia da terra, mantenendo la schiena piatta e il core attivo.","Muovi in avanti contemporaneamente la mano destra e il piede sinistro, seguiti dalla mano sinistra e dal piede destro.","Continua a strisciare in avanti, alternando movimenti di mani e piedi.","Mantieni un ritmo costante e tieni il core teso durante tutto l'esercizio.","Continua per la distanza o il tempo desiderato."],"ds":"3360"},{"id":"cd_jump_sq","chain":"cond","name":"Squat con salto","lv":3,"kind":"reps","lo":8,"hi":15,"eq":[],"flags":["salti","ginocchia"],"per":false,"focus":"Gambe, cardio","steps":["Stai con i piedi alla larghezza delle spalle.","Abbassa il corpo in una posizione tozza piegando le ginocchia e spingendo indietro i fianchi.","Salta in modo esplosivo da terra, estendendo i fianchi, le ginocchia e le caviglie.","Mentre sei a mezz'aria, porta rapidamente le braccia in avanti per mantenere l'equilibrio.","Atterra dolcemente sulle punte dei piedi e passa immediatamente alla ripetizione successiva."],"ds":"0514"},{"id":"cd_burpee","chain":"cond","name":"Burpee","lv":4,"kind":"reps","lo":6,"hi":15,"eq":[],"flags":["salti","polsi","ginocchia"],"per":false,"focus":"Cardio, tutto il corpo","steps":["Inizia in posizione eretta, con i piedi alla larghezza delle spalle.","Abbassa il corpo in posizione accovacciata piegando le ginocchia e appoggiando le mani sul pavimento davanti a te.","Rimetti i piedi in posizione di piegamenti.","Fai una flessione, mantenendo il corpo in linea retta.","Rimetti i piedi in posizione squat.","Salta su esplosivamente, allungando le braccia sopra la testa.","Atterra dolcemente e poi si abbassa subito in posizione accovacciato per iniziare la prossima ripetizione."],"ds":"1160"},{"id":"hs_walk","chain":"sk_hs","name":"Wall walk parziale","lv":3,"kind":"reps","lo":3,"hi":6,"eq":[],"flags":["polsi","spalle"],"per":false,"focus":"Spalle, polsi, core","steps":["Parti in plank con i piedi contro il muro (mani a terra, braccia tese, a circa un piede dal muro).","Cammina con i piedi sul muro verso l'alto e con le mani verso il muro, solo fino a dove ti senti stabile.","Spingi forte il pavimento con le mani, con le spalle alte e le braccia tese, poi scendi camminando con i piedi.","Usa un tappetino e lascia libero lo spazio. Scendi sempre in modo controllato."],"ds":null},{"id":"hs_chest","chain":"sk_hs","name":"Verticale a muro, petto al muro","lv":4,"kind":"time","lo":10,"hi":40,"eq":[],"flags":["polsi","spalle"],"per":false,"focus":"Spalle, polsi, core","steps":["Dal plank con i piedi sul muro, cammina con le mani verso il muro finché il petto è vicino al muro.","Braccia tese, spalle spinte verso l'alto (lontane dalle orecchie), corpo in linea retta, sguardo tra le mani.","Tieni la posizione respirando. Per uscire, cammina con i piedi verso il basso lungo il muro."],"ds":null},{"id":"hs_back","chain":"sk_hs","name":"Verticale a muro con kick-up","lv":4,"kind":"time","lo":10,"hi":40,"eq":[],"flags":["polsi","spalle"],"per":false,"focus":"Spalle, polsi, core","steps":["Con la schiena rivolta al muro, appoggia le mani a terra a circa 20-30 cm dal muro.","Calcia verso l'alto una gamba alla volta fino ad appoggiare i talloni al muro. Braccia tese, spalle alte.","Tieni la posizione. Per scendere riporta una gamba alla volta a terra.","Impara anche un'uscita laterale (ruota) per i casi in cui perdi l'equilibrio."],"ds":null},{"id":"hs_free","chain":"sk_hs","name":"Verticale libera","lv":5,"kind":"time","lo":3,"hi":20,"eq":[],"flags":["polsi","spalle"],"per":false,"focus":"Spalle, polsi, equilibrio","steps":["Scegli uno spazio libero con un tappetino e senza ostacoli. Tieni il muro dietro di te come rete di sicurezza.","Calcia verso l'alto con controllo e cerca la linea retta, con le mani che premono forte sul pavimento.","Se cadi in avanti, premi con le dita; se cadi all'indietro, premi con la base del palmo.","Per uscire ruota di lato oppure scendi con una gamba alla volta."],"ds":null,"note":"Tentativi brevi e di qualità: smetti quando l'equilibrio peggiora."},{"id":"fl_tuck","chain":"sk_fl","name":"Front lever tuck","lv":3,"kind":"time","lo":5,"hi":15,"eq":["sbarra"],"flags":["gomiti","spalle"],"per":false,"focus":"Dorsali, core, spalle","steps":["Appeso alla sbarra a braccia tese, con le scapole portate verso il basso.","Solleva le ginocchia al petto e inclina il corpo all'indietro, con la schiena orizzontale.","Tieni le braccia tese per tutto il tempo e scendi lentamente."],"ds":null},{"id":"fl_adv","chain":"sk_fl","name":"Front lever tuck avanzato","lv":4,"kind":"time","lo":4,"hi":12,"eq":["sbarra"],"flags":["gomiti","spalle"],"per":false,"focus":"Dorsali, core, spalle","steps":["Parti dalla posizione tuck.","Allontana le ginocchia dal petto (angolo dell'anca di circa 90°) con la schiena piatta e orizzontale.","Tieni le braccia tese e le scapole basse. Scendi lentamente."],"ds":null},{"id":"fl_str","chain":"sk_fl","name":"Front lever straddle","lv":5,"kind":"time","lo":3,"hi":10,"eq":["sbarra"],"flags":["gomiti","spalle"],"per":false,"focus":"Dorsali, core, spalle","steps":["Dalla posizione tuck avanzato, estendi le gambe lateralmente divaricate e tese.","Corpo orizzontale, braccia tese, scapole basse.","Tieni poco e riposa a lungo: la tensione sui gomiti è alta."],"ds":null},{"id":"fl_full","chain":"sk_fl","name":"Front lever completo","lv":5,"kind":"time","lo":2,"hi":8,"eq":["sbarra"],"flags":["gomiti","spalle"],"per":false,"focus":"Dorsali, core, spalle","steps":["Corpo teso in linea retta e orizzontale, appeso alla sbarra a braccia tese.","Glutei e addome contratti, scapole basse.","Scendi con controllo e riposa a lungo tra le serie."],"ds":null},{"id":"mu_false","chain":"sk_mu","name":"False grip hang","lv":3,"kind":"time","lo":8,"hi":25,"eq":["sbarra"],"flags":["polsi","gomiti"],"per":false,"focus":"Polsi, presa","steps":["Appoggia il polso sopra la sbarra, con la base del palmo sulla sbarra e le dita a uncino (false grip).","Resta appeso a braccia tese.","Interrompi se senti dolore al polso. Inizia con pochi secondi."],"ds":null},{"id":"mu_high","chain":"sk_mu","name":"High pull","lv":4,"kind":"reps","lo":3,"hi":6,"eq":["sbarra"],"flags":["gomiti","spalle"],"per":false,"focus":"Dorsali, bicipiti","steps":["Appeso alla sbarra, tira in modo esplosivo portando la sbarra verso la parte bassa del petto o l'addome.","Inclina leggermente il busto all'indietro e porta i gomiti dietro.","Scendi lentamente. Tieni poche ripetizioni e di qualità."],"ds":null},{"id":"mu_band","chain":"sk_mu","name":"Transizione con elastico","lv":5,"kind":"reps","lo":3,"hi":6,"eq":["sbarra","elastico"],"flags":["gomiti","spalle"],"per":false,"focus":"Dorsali, tricipiti","steps":["Fissa un elastico alla sbarra e infilaci un ginocchio o un piede in modo che aiuti il passaggio.","Tira in alto in modo esplosivo e porta rapidamente i gomiti sopra la sbarra, con il petto sopra.","Distendi le braccia in appoggio sopra la sbarra, poi scendi con controllo."],"ds":null},{"id":"mu_neg","chain":"sk_mu","name":"Muscle-up negativo","lv":5,"kind":"reps","lo":2,"hi":5,"eq":["sbarra"],"flags":["gomiti","spalle"],"per":false,"focus":"Dorsali, tricipiti","steps":["Parti in appoggio sopra la sbarra con le braccia tese.","Scendi lentamente in 4-5 secondi attraverso il passaggio, portando i gomiti sotto la sbarra.","Termina appeso a braccia tese, poi scendi a terra e riposa."],"ds":null},{"id":"mu_full","chain":"sk_mu","name":"Muscle-up","lv":5,"kind":"reps","lo":1,"hi":4,"eq":["sbarra"],"flags":["gomiti","spalle"],"per":false,"focus":"Dorsali, tricipiti","steps":["Parti appeso, con la false grip se la padroneggi.","Tira in modo esplosivo portando la sbarra vicino all'addome.","Passa rapidamente con i gomiti sopra la sbarra inclinando il busto in avanti, poi distendi le braccia.","Qualità prima della quantità: ferma la serie se il passaggio si rompe."],"ds":null},{"id":"pl_lean","chain":"sk_pl","name":"Planche lean","lv":4,"kind":"time","lo":8,"hi":25,"eq":[],"flags":["polsi","spalle","gomiti"],"per":false,"focus":"Spalle, polsi, core","steps":["In plank alto, spingi le spalle in avanti oltre le mani mantenendo il corpo in linea retta.","Braccia tese, spalle ben spinte lontano dalle orecchie, glutei contratti.","Tieni la posizione e torna lentamente. Scalda bene i polsi."],"ds":null},{"id":"pl_pseudo","chain":"sk_pl","name":"Pseudo planche push-up","lv":4,"kind":"reps","lo":4,"hi":10,"eq":[],"flags":["polsi","spalle","gomiti"],"per":false,"focus":"Spalle, petto, tricipiti","steps":["In plank con le mani all'altezza dei fianchi, dita leggermente verso l'esterno, spalle in avanti.","Piega i gomiti tenendoli vicini ai fianchi e scendi mantenendo l'inclinazione in avanti.","Spingi fino a distendere le braccia."],"ds":null},{"id":"pl_frog","chain":"sk_pl","name":"Frog stand","lv":4,"kind":"time","lo":5,"hi":20,"eq":[],"flags":["polsi","spalle"],"per":false,"focus":"Spalle, polsi, equilibrio","steps":["Accovacciati con le mani a terra davanti a te, dita aperte.","Appoggia le ginocchia sulla parte esterna dei gomiti e inclina il peso in avanti.","Solleva i piedi da terra e tieni l'equilibrio. Metti un cuscino davanti al viso per sicurezza."],"ds":null},{"id":"pl_tuck","chain":"sk_pl","name":"Tuck planche","lv":5,"kind":"time","lo":3,"hi":12,"eq":[],"flags":["polsi","spalle","gomiti"],"per":false,"focus":"Spalle, polsi, core","steps":["Dalla frog stand o dalla lean, solleva i piedi con le ginocchia al petto e le braccia tese.","I fianchi sono all'altezza delle spalle e la schiena è leggermente arrotondata.","Tieni pochi secondi, poi scendi."],"ds":null},{"id":"pl_str","chain":"sk_pl","name":"Straddle planche","lv":5,"kind":"time","lo":2,"hi":8,"eq":[],"flags":["polsi","spalle","gomiti"],"per":false,"focus":"Spalle, polsi, core","steps":["Dalla posizione tuck, estendi le gambe divaricate e tese.","Corpo orizzontale, braccia tese, spalle spinte in avanti.","Tieni poco e riposa a lungo: il carico su polsi, gomiti e spalle è molto alto."],"ds":null},{"id":"pl_full","chain":"sk_pl","name":"Planche completa","lv":5,"kind":"time","lo":2,"hi":6,"eq":[],"flags":["polsi","spalle","gomiti"],"per":false,"focus":"Spalle, polsi, core","steps":["Corpo teso e orizzontale in equilibrio sulle sole mani, a braccia tese.","Glutei e addome contratti, spalle spinte in avanti.","Tieni pochi secondi e riposa a lungo tra i tentativi."],"ds":null}],"tests":[{"chain":"push_h","q":"Quanti push-up standard (petto quasi a terra, corpo in linea) riesci a fare di fila?","skill":false,"needs":[],"opts":[{"label":"Non ne ho mai fatti o sono molto fuori allenamento","start":"push_wall"},{"label":"Nemmeno uno a terra","start":"push_inc_hi"},{"label":"Da 1 a 7","start":"push_inc_lo"},{"label":"Da 8 a 14","start":"push_std"},{"label":"Da 15 a 29","start":"push_dec"},{"label":"30 o più","start":"push_arc"}]},{"chain":"pull_v","q":"Quante trazioni alla sbarra riesci a fare di fila?","skill":false,"needs":["sbarra"],"opts":[{"label":"Non riesco a restare appeso 20 secondi","start":"pv_hang"},{"label":"Zero trazioni, ma resto appeso 20 secondi o più","start":"pv_scap"},{"label":"Da 1 a 3","start":"pv_neg"},{"label":"Da 4 a 7","start":"pv_chin"},{"label":"Da 8 a 14","start":"pv_pull"},{"label":"Da 15 a 24","start":"pv_wide"},{"label":"25 o più","start":"pv_arch"}]},{"chain":"pull_h","q":"Come vai con il rematore inverso (sotto un tavolo o una sbarra bassa)?","skill":false,"needs":["tavolo"],"opts":[{"label":"Non l'ho mai provato","start":"ph_row_bent"},{"label":"Riesco a farne da 8 a 14 con il corpo dritto","start":"ph_row"},{"label":"Ne faccio 15 o più con il corpo dritto","start":"ph_row_feet"},{"label":"Ne faccio 15 o più con i piedi rialzati","start":"ph_row_arch"}]},{"chain":"squat","q":"Come vai con gli squat a corpo libero?","skill":false,"needs":[],"opts":[{"label":"Faccio fatica ad alzarmi da una sedia senza aiutarmi","start":"sq_sit"},{"label":"Faccio da 5 a 14 squat completi","start":"sq_bw"},{"label":"Ne faccio da 15 a 25 con facilità","start":"sq_pause"},{"label":"Ne faccio più di 25, anche lenti","start":"sq_tempo"}]},{"chain":"lunge","q":"Come vai con il lavoro su una gamba sola?","skill":false,"needs":[],"opts":[{"label":"Faccio fatica con l'equilibrio o non l'ho mai fatto","start":"lu_step"},{"label":"Faccio affondi alternati, 8 o più per gamba","start":"lu_fwd"},{"label":"Faccio squat bulgari, 10 o più per gamba","start":"lu_bulg"},{"label":"Squat bulgari 12 o più per gamba e provo lo shrimp","start":"lu_shrimp"},{"label":"Faccio il pistol assistito, 5 o più per gamba","start":"lu_pistol_as"}]},{"chain":"hinge","q":"Come vai con i ponti per glutei e femorali?","skill":false,"needs":[],"opts":[{"label":"Non li ho mai fatti o sono sedentario","start":"hi_bridge"},{"label":"Ponte a terra, 15 o più facili","start":"hi_march"},{"label":"Ponte a una gamba, 10 o più per gamba","start":"hi_single"},{"label":"Faccio i curl con asciugamano, 8 o più","start":"hi_single_el"}]},{"chain":"core_ext","q":"Quanto resisti nel plank sugli avambracci?","skill":false,"needs":[],"opts":[{"label":"Meno di 20 secondi o non l'ho mai fatto","start":"ce_deadbug"},{"label":"Da 20 a 44 secondi","start":"ce_plank"},{"label":"Da 45 a 89 secondi","start":"ce_plank_tap"},{"label":"90 secondi o più, e hollow hold 20 secondi","start":"ce_hollow"},{"label":"Hollow hold 40 secondi e L-sit 10 secondi","start":"ce_lsit"}]},{"chain":"sk_hs","q":"Verticale: a che punto sei?","skill":true,"needs":[],"opts":[{"label":"Non l'ho mai provata","start":"hs_walk"},{"label":"Resto 20 secondi con il petto al muro","start":"hs_back"},{"label":"Tengo la verticale libera per 5 secondi o più","start":"hs_free"}]},{"chain":"sk_fl","q":"Front lever: a che punto sei?","skill":true,"needs":[],"opts":[{"label":"Non l'ho mai provato","start":"fl_tuck"},{"label":"Tuck per 10 secondi","start":"fl_adv"},{"label":"Tuck avanzato per 8 secondi","start":"fl_str"},{"label":"Straddle per 5 secondi","start":"fl_full"}]},{"chain":"sk_mu","q":"Muscle-up: a che punto sei?","skill":true,"needs":[],"opts":[{"label":"Non l'ho mai provato","start":"mu_false"},{"label":"Faccio high pull con il petto che raggiunge la sbarra","start":"mu_band"},{"label":"Faccio la transizione assistita","start":"mu_neg"},{"label":"Faccio 3 negativi controllati","start":"mu_full"}]},{"chain":"sk_pl","q":"Planche: a che punto sei?","skill":true,"needs":[],"opts":[{"label":"Non l'ho mai provata","start":"pl_lean"},{"label":"Lean 15 secondi e pseudo planche push-up da 8","start":"pl_frog"},{"label":"Frog stand 15 secondi","start":"pl_tuck"},{"label":"Tuck planche 8 secondi","start":"pl_str"}]}],"screening":["Un medico ti ha mai detto che hai un problema al cuore o la pressione alta?","Senti dolore al petto, ti gira la testa o perdi i sensi quando fai attività fisica?","Hai problemi attuali o recenti a ossa o articolazioni (schiena, ginocchia, spalle, gomiti, polsi) che un esercizio potrebbe peggiorare?","Prendi regolarmente farmaci per cuore, pressione o diabete?","Sei in gravidanza o hai partorito negli ultimi mesi?","Hai avuto interventi chirurgici o infortuni negli ultimi 6 mesi?","Conosci un altro motivo per cui l'attività fisica potrebbe non essere sicura per te?"]};window.LICENSE="MIT License\n\nCopyright (c) 2026 Hasan Emir Yıldırım\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation and data files (the \"Software\"),\nto deal in the Software without restriction, including without limitation the\nrights to use, copy, modify, merge, publish, distribute, sublicense, and/or\nsell copies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.";</script>
+<script>/* Motore del piano: puro, senza DOM, testabile in Node. */
+(function (root) {
+  'use strict';
+
+  const DAYS = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
+  const DAYS_SHORT = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
+  const GOALFR = {
+    salute: [0.15, 0.45, 0.75],
+    forza: [0.0, 0.3, 0.6],
+    massa: [0.4, 0.7, 1.0],
+    resistenza: [0.7, 0.9, 1.0],
+    skill: [0.2, 0.5, 0.8],
+  };
+  const REST = { salute: 60, forza: 90, massa: 60, resistenza: 40, skill: 75 };
+  const EXP_DEFAULT_LV = { sedentario: 0, ripartenza: 1, attivo: 2, esperto: 3 };
+  const TENDON_SKILLS = ['sk_fl', 'sk_pl', 'sk_mu'];
+  const SKILL_FREQ = { sk_hs: 2, sk_fl: 2, sk_pl: 2, sk_mu: 1 };
+  const PHASES = ['Introduzione', 'Costruzione', 'Picco', 'Scarico'];
+
+  const KINDS = {
+    1: ['FULL_A'],
+    2: ['FULL_A', 'FULL_B'],
+    3: ['FULL_A', 'FULL_B', 'FULL_C'],
+    4: ['UPPER_1', 'LOWER_1', 'UPPER_2', 'LOWER_2'],
+    5: ['UPPER_1', 'LOWER_1', 'FULL_LIGHT', 'UPPER_2', 'LOWER_2'],
+    6: ['UPPER_1', 'LOWER_1', 'UPPER_2', 'LOWER_2', 'FULL_LIGHT', 'COND_CORE'],
+    7: ['UPPER_1', 'LOWER_1', 'UPPER_2', 'LOWER_2', 'FULL_LIGHT', 'COND_CORE', 'FULL_A'],
+  };
+  const KIND_LABEL = {
+    FULL_A: 'Corpo intero A', FULL_B: 'Corpo intero B', FULL_C: 'Corpo intero C',
+    UPPER_1: 'Parte alta A', UPPER_2: 'Parte alta B', LOWER_1: 'Gambe A', LOWER_2: 'Gambe B',
+    FULL_LIGHT: 'Corpo intero leggero', COND_CORE: 'Core e condizionamento',
+  };
+  const SLOTS = {
+    FULL_A: ['push_h', 'squat', 'PULL', 'core_ext', 'hinge', 'core_lat', 'lunge'],
+    FULL_B: [['push_v', 'dip', 'push_h'], 'hinge', 'PULL', 'lunge', 'core_flex', 'push_h', 'core_post'],
+    FULL_C: ['push_h', 'lunge', 'PULL', 'squat', 'core_post', 'hinge', 'core_lat'],
+    UPPER_1: ['push_h', 'PULL', 'push_v', 'pull_h', 'core_ext', 'dip'],
+    UPPER_2: ['push_h', 'PULL', 'dip', 'pull_h', 'core_flex', 'push_v'],
+    LOWER_1: ['squat', 'hinge', 'lunge', 'core_ext', 'core_lat', 'core_post'],
+    LOWER_2: ['lunge', 'hinge', 'squat', 'core_flex', 'core_lat', 'core_post'],
+    FULL_LIGHT: ['squat', 'push_h', 'PULL', 'core_ext', 'hinge'],
+    COND_CORE: ['core_ext', 'core_flex', 'core_lat', 'core_post', 'hinge'],
+  };
+
+  let LIB = null, BY = {}, CH = {}, POS = {};
+
+  function init(lib) {
+    LIB = lib; BY = {}; CH = {}; POS = {};
+    lib.exercises.forEach(function (e) {
+      BY[e.id] = e;
+      (CH[e.chain] = CH[e.chain] || []).push(e);
+    });
+    Object.keys(CH).forEach(function (c) { CH[c].forEach(function (e, i) { POS[e.id] = i; }); });
+    return api;
+  }
+
+  /* ---------------------------------------------------------- filtri */
+  function capLv(p) {
+    if (p.caution || p.exp === 'sedentario') return 2;
+    if (p.exp === 'ripartenza') return 3;
+    return 5;
+  }
+  function noImpact(p) { return p.caution || p.limits.indexOf('salti') >= 0; }
+  function haveEq(p, req) {
+    return p.eq.indexOf(req) >= 0 || (req === 'tavolo' && p.eq.indexOf('anelli') >= 0);
+  }
+  function blockReason(ex, p, ignoreCap) {
+    const miss = ex.eq.filter(function (r) { return !haveEq(p, r); });
+    if (miss.length) return { type: 'eq', detail: miss };
+    const lim = ex.flags.filter(function (f) { return p.limits.indexOf(f) >= 0; });
+    if (lim.length) return { type: 'limit', detail: lim };
+    if (noImpact(p) && ex.flags.indexOf('salti') >= 0) return { type: 'limit', detail: ['salti'] };
+    if (!ignoreCap && ex.lv > capLv(p)) return { type: 'cap', detail: [capLv(p)] };
+    return null;
+  }
+  function avail(ex, p, ignoreCap) { return !blockReason(ex, p, ignoreCap); }
+
+  /* ---------------------------------------------------------- catene */
+  function limLabel(l) { return LIB.limits[l] || l; }
+  function eqLabel(e) { return LIB.equipment[e] || e; }
+
+  function resolve(cid, p, memo) {
+    if (memo[cid]) return memo[cid];
+    const meta = LIB.chains[cid], full = CH[cid];
+    const isSkill = meta.group === 'skill';
+    const res = { chain: cid, label: meta.label, steps: [], idx: -1, disabled: null, skill: isSkill };
+    memo[cid] = res;
+
+    if (isSkill) {
+      if (p.skills.indexOf(cid) < 0) { res.disabled = 'Non selezionata'; res.unselected = true; return res; }
+      if (p.caution || p.exp === 'sedentario') {
+        res.disabled = 'Le skill avanzate si sbloccano dopo la fase di base: restano escluse con un profilo prudente o sedentario.';
+        return res;
+      }
+      const forb = (meta.forbid || []).filter(function (f) { return p.limits.indexOf(f) >= 0; });
+      if (forb.length) {
+        res.disabled = 'Esclusa per le tue limitazioni (' + forb.map(limLabel).join(', ').toLowerCase() + ').';
+        return res;
+      }
+    }
+
+    const steps = full.filter(function (e) { return avail(e, p, isSkill); });
+    if (!steps.length) {
+      const first = full[0], r = blockReason(first, p, isSkill);
+      res.disabled = r && r.type === 'eq'
+        ? 'Manca l\'attrezzatura: ' + r.detail.map(eqLabel).join(', ').toLowerCase() + '.'
+        : 'Nessun esercizio compatibile con le tue limitazioni.';
+      return res;
+    }
+    res.steps = steps;
+
+    if (isSkill) {
+      for (let i = 0; i < (meta.prereq || []).length; i++) {
+        const pr = meta.prereq[i], r = resolve(pr.chain, p, memo);
+        const ok = r.idx >= 0 && POS[r.steps[r.idx].id] >= POS[pr.min];
+        if (!ok) {
+          res.disabled = 'Prerequisito mancante. ' + (meta.reqmsg || '');
+          res.steps = []; return res;
+        }
+      }
+    }
+
+    const targetId = p.starts && p.starts[cid];
+    let idx = -1;
+    if (targetId && BY[targetId] && BY[targetId].chain === cid) {
+      const tpos = POS[targetId];
+      steps.forEach(function (s, i) { if (POS[s.id] <= tpos) idx = i; });
+      if (idx < 0 && steps[0].lv <= BY[targetId].lv + 1) idx = 0;
+    } else if (isSkill) {
+      idx = 0;
+    } else {
+      let anchorLv = EXP_DEFAULT_LV[p.exp];
+      let derived = false;
+      if (meta.derive) {
+        const a = resolve(meta.derive.frm, p, memo);
+        if (a.idx >= 0) { anchorLv = a.steps[a.idx].lv + meta.derive.off; derived = true; }
+      }
+      steps.forEach(function (s, i) { if (s.lv <= anchorLv) idx = i; });
+      if (idx < 0 && steps[0].lv <= anchorLv + 1) idx = 0;
+      if (idx < 0 && derived) idx = -1;
+    }
+    if (idx < 0) {
+      res.disabled = 'Non ancora disponibile al tuo livello.';
+      res.steps = [];
+      return res;
+    }
+    res.idx = idx;
+    return res;
+  }
+
+  function current(r) { return r && r.idx >= 0 ? r.steps[r.idx] : null; }
+  function nextStep(r) { return r && r.idx >= 0 ? (r.steps[r.idx + 1] || null) : null; }
+
+  /* ---------------------------------------------------------- prescrizione */
+  function baseSets(p, b) {
+    if (p.caution) return 2;
+    if (p.exp === 'sedentario') return 2;
+    if (p.exp === 'ripartenza') return b >= 1 ? 3 : 2;
+    if (p.exp === 'attivo') return 3;
+    return b >= 1 ? 4 : 3;
+  }
+  function frac(goal, wb, b) {
+    const arr = GOALFR[goal] || GOALFR.salute;
+    const f = arr[Math.min(wb === 3 ? 1 : wb, 2)];
+    return Math.min(1, f + 0.15 * b);
+  }
+  function rirText(p) {
+    if (p.caution || p.exp === 'sedentario') return 'Sforzo 5-6 su 10: devi riuscire a parlare. Mai a cedimento.';
+    if (p.exp === 'ripartenza') return 'Lascia sempre 3 ripetizioni di riserva.';
+    if (p.exp === 'attivo') return 'Lascia 2 ripetizioni di riserva.';
+    return 'Lascia 1-2 ripetizioni di riserva; i tentativi di skill restano puliti e mai a cedimento.';
+  }
+  function workSec(ex, target) {
+    const w = ex.kind === 'time' ? target : target * 3.5;
+    return (ex.per ? w * 2 : w) + 10;
+  }
+  function restFor(p, ex, skill) {
+    let r = skill ? REST.skill : (REST[p.goal] || 60);
+    if (p.caution || p.exp === 'sedentario') r = Math.max(r, 60);
+    if (ex.kind === 'time' && !skill) r = Math.min(r, 60);
+    return r;
+  }
+  function prescribe(ex, p, w, opts) {
+    opts = opts || {};
+    const b = Math.floor(w / 4), wb = w % 4, deload = wb === 3;
+    const skill = !!opts.skill;
+    const goal = skill ? 'skill' : p.goal;
+    const f = frac(goal, wb, b);
+    const target = Math.round(ex.lo + f * (ex.hi - ex.lo));
+    let sets = opts.sets != null ? opts.sets : baseSets(p, b);
+    if (deload) sets = Math.max(1, Math.ceil(sets / 2));
+    return { sets: sets, target: target, rest: restFor(p, ex, skill) };
+  }
+  function graduateText(ex, p, sets) {
+    const rir = (p.caution || p.exp === 'sedentario') ? 'senza arrivare al limite' : 'con 2 ripetizioni di riserva';
+    if (ex.kind === 'time')
+      return sets + ' serie da ' + ex.hi + ' secondi' + (ex.per ? ' per lato' : '') + ' con tecnica pulita.';
+    return sets + ' serie da ' + ex.hi + ' ripetizioni' + (ex.per ? ' per lato' : '') + ' con tecnica pulita, ' + rir + '.';
+  }
+  function estMin(ex, pr) {
+    return pr.sets * (workSec(ex, pr.target) + pr.rest) / 60;
+  }
+  function worstMin(ex, p, skill, sets) {
+    let m = 0;
+    for (let w = 0; w < p.weeks; w++) {
+      if (w % 4 === 3) continue;
+      m = Math.max(m, estMin(ex, prescribe(ex, p, w, { skill: skill, sets: sets })));
+    }
+    return m;
+  }
+
+  /* ---------------------------------------------------------- skill */
+  function adjacent(a, b) { const d = (a - b + 7) % 7; return d === 1 || d === 6; }
+  function combos(arr, k) {
+    const out = [];
+    (function rec(start, cur) {
+      if (cur.length === k) { out.push(cur.slice()); return; }
+      for (let i = start; i < arr.length; i++) { cur.push(arr[i]); rec(i + 1, cur); cur.pop(); }
+    })(0, []);
+    return out;
+  }
+  function minGap(set, days) {
+    if (set.length < 2) return 7;
+    let g = 99;
+    for (let i = 0; i < set.length; i++)
+      for (let j = i + 1; j < set.length; j++) {
+        const d = Math.abs(days[set[i]] - days[set[j]]);
+        g = Math.min(g, d, 7 - d);
+      }
+    return g;
+  }
+  function scheduleSkills(days, skills) {
+    const n = days.length;
+    const plan = days.map(function () { return []; });
+    const dropped = [];
+    const idxs = days.map(function (_, i) { return i; });
+    skills.forEach(function (sk) {
+      const want = Math.min(SKILL_FREQ[sk] || 1, n);
+      const tendon = TENDON_SKILLS.indexOf(sk) >= 0;
+      let placed = false;
+      for (let f = want; f >= 1 && !placed; f--) {
+        const cand = combos(idxs, f).sort(function (a, b) {
+          return minGap(b, days) - minGap(a, days) || a.join().localeCompare(b.join());
+        });
+        for (let c = 0; c < cand.length && !placed; c++) {
+          const set = cand[c];
+          let ok = true;
+          for (let k = 0; k < set.length && ok; k++) {
+            const d = set[k];
+            if (plan[d].length >= 2) { ok = false; break; }
+            if (tendon) {
+              if (plan[d].some(function (s) { return TENDON_SKILLS.indexOf(s) >= 0; })) { ok = false; break; }
+              for (let o = 0; o < n; o++)
+                if (o !== d && adjacent(days[o], days[d]) &&
+                    plan[o].some(function (s) { return TENDON_SKILLS.indexOf(s) >= 0; })) { ok = false; break; }
+              // anche tra i giorni scelti per la stessa skill
+              for (let k2 = 0; k2 < set.length && ok; k2++)
+                if (k2 !== k && adjacent(days[set[k2]], days[d])) ok = false;
+            }
+          }
+          if (ok) { set.forEach(function (d) { plan[d].push(sk); }); placed = true; if (f < want) dropped.push({ skill: sk, partial: true, freq: f }); }
+        }
+      }
+      if (!placed) dropped.push({ skill: sk, partial: false });
+    });
+    return { plan: plan, dropped: dropped };
+  }
+
+  /* ---------------------------------------------------------- riscaldamento e defaticamento */
+  function warmup(minutes, session, p, hasBar) {
+    const m = minutes;
+    const items = [{ name: 'Marcia sul posto', detail: m <= 4 ? '60 secondi' : '90 secondi, ritmo crescente' }];
+    items.push({ name: 'Gatto-cammello e rotazioni toraciche', detail: '8 ripetizioni + 6 per lato' });
+    if (m > 4) items.push({ name: 'Circonduzioni delle spalle', detail: '10 per verso' });
+    if (session.wrist) items.push({ name: 'Mobilità dei polsi', detail: 'Palmi e dorsi a terra, dondolii in avanti e indietro, 45 secondi' });
+    if (session.push) items.push({ name: 'Scapular push-up', detail: 'In plank a braccia tese, avvicina e allarga le scapole, 8 ripetizioni' });
+    if (session.pull && hasBar) items.push({ name: 'Appeso attivo', detail: '2 serie da 15 secondi, spalle basse' });
+    if (session.lower) items.push({ name: 'Squat leggeri e cerchi con le anche', detail: '8 squat + 8 cerchi per lato' });
+    if (m <= 4) return items.slice(0, 3);
+    return items;
+  }
+  function cooldown(session) {
+    const items = [{ name: 'Respirazione diaframmatica', detail: '5 respiri lenti, mani sull\'addome' }];
+    if (session.upper) {
+      items.push({ name: 'Pettorali al muro', detail: '30 secondi per lato' });
+      items.push({ name: 'Posizione del bambino con braccia avanti', detail: '30 secondi' });
+    }
+    if (session.lower) {
+      items.push({ name: 'Quadricipiti in piedi', detail: '30 secondi per lato' });
+      items.push({ name: 'Femorali da seduto', detail: '30 secondi per lato' });
+    }
+    if (session.grip) items.push({ name: 'Avambracci e polsi', detail: '30 secondi per lato' });
+    return items;
+  }
+
+  /* ---------------------------------------------------------- piano */
+  function normalize(p) {
+    const q = Object.assign({}, p);
+    q.eq = (p.eq || []).slice();
+    q.limits = (p.limits || []).slice();
+    q.skills = (p.skills || []).slice();
+    q.starts = Object.assign({}, p.starts || {});
+    q.exp = p.exp || 'ripartenza';
+    q.goal = p.goal || 'salute';
+    q.minutes = Math.max(15, Math.min(90, p.minutes || 30));
+    q.weeks = [4, 8, 12].indexOf(p.weeks) >= 0 ? p.weeks : 4;
+    q.days = (p.days || [0, 2, 4]).slice().sort(function (a, b) { return a - b; });
+    if (q.goal !== 'skill' && q.goal !== 'forza' && q.goal !== 'massa' && q.goal !== 'resistenza') q.goal = 'salute';
+    return q;
+  }
+
+  function buildPlan(profile) {
+    const p = normalize(profile);
+    const memo = {};
+    const warnings = [];
+    const chains = {};
+    Object.keys(LIB.chains).forEach(function (cid) { chains[cid] = resolve(cid, p, memo); });
+
+    if (p.caution)
+      warnings.push('Hai risposto sì ad almeno una domanda di idoneità. Parlane con il medico prima di iniziare: il piano è in modalità prudente (intensità bassa, nessun salto, nessuna skill avanzata).');
+    if (chains.pull_v.idx < 0 && chains.pull_h.steps.length && chains.pull_h.steps.every(function (s) { return s.eq.length === 0; }))
+      warnings.push('Senza sbarra né tavolo robusto la tirata resta limitata: una sbarra da porta o due anelli cambiano molto il risultato.');
+    p.skills.forEach(function (sk) {
+      if (chains[sk].disabled && !chains[sk].unselected)
+        warnings.push(LIB.chains[sk].label + ': ' + chains[sk].disabled);
+    });
+
+    if (p.minutes < 30 && activeSkillsPre(p, chains))
+      warnings.push('Con meno di 30 minuti a sessione le skill avanzate restano fuori: servono riscaldamento specifico e pause lunghe.');
+    const n = p.days.length;
+    const kinds = KINDS[n] || KINDS[3];
+    const activeSkills = p.skills.filter(function (sk) { return chains[sk] && chains[sk].idx >= 0; });
+    const sched = scheduleSkills(p.days, activeSkills);
+    sched.dropped.forEach(function (d) {
+      warnings.push(LIB.chains[d.skill].label + (d.partial
+        ? ': con i giorni scelti riesco a inserirla solo ' + d.freq + ' volta a settimana, per tenere almeno un giorno libero tra le skill che caricano i tendini.'
+        : ': non trovo un giorno compatibile con le altre skill, per questo l\'ho lasciata fuori.'));
+    });
+
+    const m = p.minutes;
+    const warmMin = m < 20 ? 3 : Math.max(4, Math.min(8, Math.round(m * 0.12)));
+    const coolMin = m < 20 ? 2 : Math.max(3, Math.min(5, Math.round(m * 0.06)));
+    const hasBar = p.eq.indexOf('sbarra') >= 0;
+
+    const sessions = [];
+    const pullVDays = {};
+    p.days.forEach(function (wd, di) {
+      const kind = kinds[di];
+      const skillsToday = (m >= 30 ? sched.plan[di] : []);
+      const hasSkill = skillsToday.length > 0;
+      const skillMin = hasSkill ? Math.max(6, Math.min(12, Math.round(m * 0.22))) : 0;
+
+      let condMin = 0;
+      if (m >= 25) {
+        const rem = m - warmMin - coolMin - skillMin;
+        if (p.goal === 'resistenza') condMin = Math.round(rem * 0.3);
+        else if (p.goal === 'salute') condMin = Math.max(5, Math.round(rem * 0.2));
+        else if (kind === 'COND_CORE') condMin = Math.round(rem * 0.4);
+      }
+      if (kind === 'COND_CORE' && condMin === 0 && m >= 20) condMin = Math.round((m - warmMin - coolMin) * 0.3);
+      const strengthBudget = m - warmMin - coolMin - skillMin - condMin;
+
+      // skill
+      const skillBlock = [];
+      skillsToday.forEach(function (sk) {
+        const r = chains[sk], ex = current(r);
+        const allot = skillMin / skillsToday.length;
+        const rest = restFor(p, ex, true);
+        const maxSets = p.exp === 'esperto' ? 5 : p.exp === 'attivo' ? 4 : 3;
+        let sets = maxSets;
+        while (sets > 1 && worstMin(ex, p, true, sets) > allot) sets--;
+        skillBlock.push({ chain: sk, exId: ex.id, sets: sets });
+      });
+
+      // forza
+      const used = {};
+      const strength = [];
+      let acc = 0;
+      const slots = SLOTS[kind];
+      for (let s = 0; s < slots.length; s++) {
+        let cand = slots[s];
+        let cid = null;
+        if (cand === 'PULL') {
+          const vOK = chains.pull_v.idx >= 0;
+          const adjV = p.days.some(function (od) { return adjacent(od, wd) && pullVDays[od]; });
+          cid = (vOK && !adjV && !used.pull_v) ? 'pull_v' : 'pull_h';
+          if (used[cid]) cid = null;
+        } else {
+          const list = Array.isArray(cand) ? cand : [cand];
+          for (let k = 0; k < list.length; k++)
+            if (!used[list[k]] && chains[list[k]] && chains[list[k]].idx >= 0) { cid = list[k]; break; }
+        }
+        if (!cid || used[cid] || chains[cid].idx < 0) continue;
+        const ex = current(chains[cid]);
+        const t = worstMin(ex, p, false, null);
+        if (strength.length >= 1 && acc + t > strengthBudget) continue;
+        strength.push({ chain: cid, exId: ex.id });
+        used[cid] = true; acc += t;
+        if (cid === 'pull_v') pullVDays[wd] = true;
+      }
+      if (!strength.length) {
+        ['hinge', 'core_ext', 'core_post', 'pull_h'].some(function (c) {
+          if (chains[c] && chains[c].idx >= 0) { strength.push({ chain: c, exId: current(chains[c]).id }); return true; }
+          return false;
+        });
+      }
+      // core in fondo
+      const isCore = function (x) { return LIB.chains[x.chain].group === 'core'; };
+      strength.sort(function (a, b) { return (isCore(a) ? 1 : 0) - (isCore(b) ? 1 : 0); });
+
+      // condizionamento
+      let cond = null;
+      if (condMin > 0) cond = buildCond(p, chains, condMin);
+
+      const ctx = {
+        upper: strength.some(function (x) { return ['push_h', 'push_v', 'dip', 'pull_h', 'pull_v'].indexOf(x.chain) >= 0; }),
+        lower: strength.some(function (x) { return ['squat', 'lunge', 'hinge'].indexOf(x.chain) >= 0; }),
+        push: strength.some(function (x) { return ['push_h', 'push_v', 'dip'].indexOf(x.chain) >= 0; }) || skillsToday.indexOf('sk_hs') >= 0 || skillsToday.indexOf('sk_pl') >= 0,
+        pull: strength.some(function (x) { return x.chain === 'pull_v'; }) || skillsToday.some(function (s) { return s === 'sk_fl' || s === 'sk_mu'; }),
+      };
+      const all = strength.concat(skillBlock);
+      ctx.wrist = all.some(function (x) { return BY[x.exId].flags.indexOf('polsi') >= 0; });
+      ctx.grip = ctx.pull;
+
+      sessions.push({
+        d: di, weekday: wd, dayName: DAYS[wd], kind: kind, label: KIND_LABEL[kind],
+        warm: { min: warmMin, items: warmup(warmMin, ctx, p, hasBar) },
+        skills: skillBlock, strength: strength, cond: cond,
+        cool: { min: coolMin, items: cooldown(ctx) },
+        skillMin: skillMin, condMin: condMin,
+      });
+    });
+
+    // settimane
+    const weeks = [];
+    for (let w = 0; w < p.weeks; w++) {
+      const b = Math.floor(w / 4), wb = w % 4;
+      const wk = { w: w, block: b, wb: wb, phase: (b >= 1 && wb === 0) ? 'Ripresa' : PHASES[wb], deload: wb === 3, sessions: [] };
+      sessions.forEach(function (s) {
+        const ws = {
+          d: s.d, weekday: s.weekday, dayName: s.dayName, kind: s.kind, label: s.label,
+          warm: s.warm, cool: s.cool, skills: [], strength: [], cond: null,
+        };
+        s.skills.forEach(function (x) {
+          const ex = BY[x.exId], r = chains[x.chain];
+          const pr = prescribe(ex, p, w, { skill: true, sets: x.sets });
+          ws.skills.push(entry(ex, pr, nextStep(r), p, x.chain));
+        });
+        s.strength.forEach(function (x) {
+          const ex = BY[x.exId], r = chains[x.chain];
+          const pr = prescribe(ex, p, w);
+          ws.strength.push(entry(ex, pr, nextStep(r), p, x.chain));
+        });
+        if (s.cond) ws.cond = condForWeek(s.cond, wk, p);
+        // stima durata
+        let est = s.warm.min + s.cool.min;
+        ws.skills.forEach(function (e) { est += e.sets * (workSec(BY[e.exId], e.target) + e.rest) / 60; });
+        ws.strength.forEach(function (e) { est += e.sets * (workSec(BY[e.exId], e.target) + e.rest) / 60; });
+        if (ws.cond) est += ws.cond.min;
+        ws.estMin = Math.round(est);
+        wk.sessions.push(ws);
+      });
+      weeks.push(wk);
+    }
+
+    return {
+      profile: p, warnings: warnings, rir: rirText(p),
+      chains: summarizeChains(chains), sessions: sessions, weeks: weeks,
+      meta: { n: n, minutes: m, goal: p.goal, exp: p.exp, caution: !!p.caution, capLv: capLv(p) },
+    };
+  }
+
+  function activeSkillsPre(p, chains) {
+    return p.skills.some(function (sk) { return chains[sk] && chains[sk].idx >= 0; });
+  }
+
+  function entry(ex, pr, next, p, chain) {
+    return {
+      exId: ex.id, chain: chain, sets: pr.sets, target: pr.target, rest: pr.rest,
+      kind: ex.kind, per: ex.per, graduate: graduateText(ex, p, Math.max(2, Math.min(3, baseSets(p, 0)))),
+      next: next ? { exId: next.id, name: next.name } : null,
+    };
+  }
+
+  function summarizeChains(chains) {
+    const out = {};
+    Object.keys(chains).forEach(function (c) {
+      const r = chains[c];
+      out[c] = { label: r.label, idx: r.idx, disabled: r.disabled, unselected: !!r.unselected,
+                 steps: r.steps.map(function (s) { return s.id; }),
+                 current: r.idx >= 0 ? r.steps[r.idx].id : null };
+    });
+    return out;
+  }
+
+  /* ---------------------------------------------------------- condizionamento */
+  function buildCond(p, chains, minutes) {
+    const gentle = p.caution || p.exp === 'sedentario' || p.exp === 'ripartenza';
+    const order = ['cond', 'squat', 'push_h', 'cond'];
+    const items = [];
+    const usedIds = {};
+    order.forEach(function (cid, i) {
+      const r = chains[cid];
+      if (!r || r.idx < 0) return;
+      let idx = r.idx;
+      if (cid === 'push_h') idx = Math.max(0, r.idx - 1);
+      if (cid === 'cond' && i === 3) idx = Math.max(0, r.idx - 1);
+      let ex = r.steps[idx];
+      if (usedIds[ex.id] && idx > 0) ex = r.steps[idx - 1];
+      if (usedIds[ex.id]) return;
+      usedIds[ex.id] = true;
+      items.push(ex.id);
+    });
+    if (items.length < 3) {
+      const r = chains.core_ext;
+      if (r && r.idx >= 0) items.push(r.steps[Math.max(0, r.idx - 1)].id);
+    }
+    return { format: gentle ? 'intervalli' : 'amrap', min: minutes, items: items };
+  }
+  function condForWeek(c, wk, p) {
+    const out = { format: c.format, min: c.min, items: [] };
+    const scale = wk.deload ? 0.5 : 1;
+    if (c.format === 'intervalli') {
+      const work = 30, rest = wk.deload ? 45 : 30;
+      const per = (work + rest) * c.items.length / 60;
+      out.work = work; out.rest = rest;
+      out.rounds = Math.max(1, Math.floor((c.min * (wk.deload ? 0.6 : 1)) / per));
+      c.items.forEach(function (id) { out.items.push({ exId: id, secs: work }); });
+      out.min = Math.round(out.rounds * per);
+    } else {
+      out.min = wk.deload ? Math.max(3, Math.round(c.min * 0.6)) : c.min;
+      c.items.forEach(function (id) {
+        const ex = BY[id];
+        const f = frac(p.goal, wk.wb, wk.block);
+        if (ex.kind === 'time') out.items.push({ exId: id, secs: Math.max(15, Math.round((ex.lo + (ex.hi - ex.lo) * f * 0.5) / 2)) });
+        else out.items.push({ exId: id, reps: Math.max(4, Math.round((ex.lo + (ex.hi - ex.lo) * f * 0.5) * scale)) });
+      });
+    }
+    return out;
+  }
+
+  /* ---------------------------------------------------------- scala di progressione (UI) */
+  function ladder(cid, profile) {
+    const p = normalize(profile);
+    const memo = {}, r = resolve(cid, p, memo), isSkill = LIB.chains[cid].group === 'skill';
+    return {
+      chain: cid, label: LIB.chains[cid].label, disabled: r.disabled, idx: r.idx,
+      steps: CH[cid].map(function (e) {
+        const br = blockReason(e, p, isSkill);
+        return { id: e.id, name: e.name, lv: e.lv, blocked: br ? br.type : null,
+                 detail: br ? br.detail : null,
+                 current: r.idx >= 0 && r.steps[r.idx].id === e.id };
+      }),
+    };
+  }
+
+  /* ---------------------------------------------------------- circuito rapido */
+  const AREAS = {
+    full: ['push_h', 'squat', 'PULL', 'hinge', 'core_ext', 'cond'],
+    upper: ['push_h', 'PULL', 'push_v', 'dip', 'core_ext', 'pull_h'],
+    lower: ['squat', 'lunge', 'hinge', 'cond', 'core_lat', 'squat'],
+    core: ['core_ext', 'core_flex', 'core_lat', 'core_post', 'core_ext'],
+    cardio: ['cond', 'squat', 'push_h', 'cond', 'hinge'],
+  };
+  function shuffle(a, rng) {
+    const x = a.slice();
+    for (let i = x.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); const t = x[i]; x[i] = x[j]; x[j] = t; }
+    return x;
+  }
+  function quickCircuit(profile, opts, rng) {
+    rng = rng || Math.random;
+    const p = normalize(profile);
+    const memo = {};
+    const chains = {};
+    Object.keys(LIB.chains).forEach(function (c) { chains[c] = resolve(c, p, memo); });
+    const gentle = p.caution || p.exp === 'sedentario' || p.exp === 'ripartenza';
+    const mode = gentle ? 'intervalli' : (opts.mode || 'amrap');
+    const area = AREAS[opts.area] ? opts.area : 'full';
+    const n = Math.max(2, Math.min(8, opts.n || 4));
+    const order = shuffle(AREAS[area], rng);
+    const items = [], used = {};
+    for (let i = 0; i < order.length * 2 && items.length < n; i++) {
+      let cid = order[i % order.length];
+      if (cid === 'PULL') cid = (chains.pull_v.idx >= 0 && rng() < 0.5) ? 'pull_v' : 'pull_h';
+      const r = chains[cid];
+      if (!r || r.idx < 0) continue;
+      const ex = r.steps[r.idx];
+      if (used[ex.id]) {
+        if (r.idx > 0 && !used[r.steps[r.idx - 1].id]) { used[r.steps[r.idx - 1].id] = true; items.push(r.steps[r.idx - 1].id); }
+        continue;
+      }
+      used[ex.id] = true; items.push(ex.id);
+    }
+    const res = { mode: mode, area: area, minutes: opts.minutes || 10, items: [] };
+    if (mode === 'intervalli') {
+      const per = items.length * 60 / 60;
+      res.rounds = Math.max(1, Math.round(res.minutes / per));
+      res.work = 30; res.rest = 30;
+      items.forEach(function (id) { res.items.push({ exId: id, secs: 30 }); });
+    } else {
+      items.forEach(function (id) {
+        const ex = BY[id];
+        res.items.push(ex.kind === 'time'
+          ? { exId: id, secs: Math.max(20, Math.round((ex.lo + ex.hi) / 2 * 0.7)) }
+          : { exId: id, reps: Math.max(4, Math.round(ex.lo + (ex.hi - ex.lo) * 0.25)) });
+      });
+    }
+    return res;
+  }
+
+  const api = {
+    init: init, buildPlan: buildPlan, ladder: ladder, quickCircuit: quickCircuit,
+    avail: avail, blockReason: blockReason, scheduleSkills: scheduleSkills, adjacent: adjacent,
+    DAYS: DAYS, DAYS_SHORT: DAYS_SHORT, TENDON_SKILLS: TENDON_SKILLS,
+    byId: function (id) { return BY[id]; }, chain: function (c) { return CH[c]; },
+    workSec: workSec, normalize: normalize, capLv: capLv, noImpact: noImpact, haveEq: haveEq,
+  };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.Engine = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+</script>
+<script>(function () {
+  'use strict';
+  var E = Engine.init(LIB);
+  var KEY = 'palestra_libera_v2';
+  var EXPS = [
+    ['sedentario', 'Sedentario', 'Sono fermo da molto tempo o non mi sono mai allenato.'],
+    ['ripartenza', 'Riparto', 'Mi alleno ogni tanto o riprendo dopo una pausa.'],
+    ['attivo', 'Attivo', 'Mi alleno con regolarità da almeno sei mesi.'],
+    ['esperto', 'Esperto', 'Mi alleno da anni e cerco obiettivi di crescita.'],
+  ];
+  var GOALS = [
+    ['salute', 'Stare meglio', 'Più energia, mobilità e resistenza di base. Carico dolce e progressivo.'],
+    ['forza', 'Forza', 'Ripetizioni basse, difficoltà alta, recuperi lunghi.'],
+    ['massa', 'Muscoli', 'Ripetizioni medio-alte e volume maggiore.'],
+    ['resistenza', 'Resistenza', 'Ripetizioni alte, recuperi brevi, più condizionamento.'],
+    ['skill', 'Skill avanzate', 'Verticale, front lever, muscle-up, planche con base di forza.'],
+  ];
+  var DEF = {
+    step: 0, tab: 'piano', wk: 0, done: {}, circ: null, circOpt: { area: 'full', minutes: 10, n: 4 },
+    ladderChain: 'push_h', confirmReset: false,
+    p: { name: '', age: '', height: '', weight: '', exp: 'ripartenza', eq: [], limits: [], screen: [], confirmed: false,
+         goal: 'salute', minutes: 30, days: [0, 2, 4], weeks: 8, skills: [], starts: {} },
+  };
+  var S = load();
+  var plan = null;
+
+  function load() {
+    try {
+      var r = JSON.parse(localStorage.getItem(KEY));
+      if (r && r.p) { r.p = Object.assign({}, DEF.p, r.p); return Object.assign({}, DEF, r); }
+    } catch (e) {}
+    return JSON.parse(JSON.stringify(DEF));
+  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function has(a, v) { return a.indexOf(v) >= 0; }
+  function toggle(a, v) { var i = a.indexOf(v); if (i >= 0) a.splice(i, 1); else a.push(v); }
+  function profile() {
+    var p = S.p;
+    return { exp: p.exp, goal: p.goal, eq: p.eq, limits: p.limits, skills: p.exp === 'sedentario' ? [] : p.skills,
+             caution: p.screen.length > 0, minutes: +p.minutes, weeks: +p.weeks, days: p.days, starts: p.starts };
+  }
+  function rebuild() { try { plan = E.buildPlan(profile()); } catch (e) { plan = null; console.error(e); } }
+  var toastT;
+  function toast(m) {
+    var t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); t.textContent = m;
+    document.body.appendChild(t); clearTimeout(toastT); toastT = setTimeout(function () { t.remove(); }, 2200);
+  }
+
+  /* ------------------------------------------------ formattazione */
+  function rx(e) {
+    var u = e.kind === 'time' ? ' s' : '';
+    return e.sets + '×' + e.target + u + (e.per ? ' per lato' : '');
+  }
+  function exName(id) { return E.byId(id).name; }
+  function stepsHtml(ex) {
+    var s = '<details><summary>Come si fa<\/summary><ol>' + ex.steps.map(function (x) { return '<li>' + esc(x) + '<\/li>'; }).join('') + '<\/ol>' +
+      (ex.note ? '<p class="small mut" style="margin-top:6px">' + esc(ex.note) + '<\/p>' : '') + '<\/details>';
+    return s;
+  }
+  function exRow(e, tag) {
+    var ex = E.byId(e.exId);
+    var nxt = e.next
+      ? '<details><summary>Quando passare al livello successivo<\/summary><p class="small" style="margin:6px 0 0">Passa a <b>' + esc(e.next.name) + '<\/b> quando fai ' + esc(e.graduate) + '<\/p><\/details>'
+      : '';
+    return '<div class="ex"><div class="nm"><span>' + esc(ex.name) + (tag ? ' <span class="tag tp">' + tag + '<\/span>' : '') + '<\/span><span class="rx">' + rx(e) + '<\/span><\/div>' +
+      '<div class="small mut">' + esc(ex.focus || '') + ' · recupero ' + e.rest + ' s<\/div>' + stepsHtml(ex) + nxt + '<\/div>';
+  }
+  function condHtml(c) {
+    if (!c) return '';
+    var list = c.items.map(function (it) {
+      return '<li>' + (it.reps ? it.reps + ' ' : it.secs + ' s ') + esc(exName(it.exId).toLowerCase()) + '<\/li>';
+    }).join('');
+    var head = c.format === 'intervalli'
+      ? c.rounds + ' giri · ' + c.work + ' s di lavoro, ' + c.rest + ' s di pausa tra un esercizio e l\'altro'
+      : 'AMRAP ' + c.min + ' minuti: più giri possibile, con tecnica pulita';
+    return '<div style="margin-top:6px"><h3>Condizionamento<\/h3><p class="small mut">' + head + '<\/p><ul style="margin:6px 0 0;padding-left:22px">' + list + '<\/ul><\/div>';
+  }
+  function listItems(items) {
+    return '<ul style="margin:6px 0 0;padding-left:22px">' + items.map(function (i) { return '<li><b>' + esc(i.name) + '<\/b>: ' + esc(i.detail) + '<\/li>'; }).join('') + '<\/ul>';
+  }
+
+  /* ------------------------------------------------ wizard */
+  var STEPS = ['Idoneità', 'Profilo', 'Attrezzi', 'Obiettivo', 'Livello'];
+  function stepBar() {
+    return '<div class="steps" aria-label="Passo ' + (S.step + 1) + ' di 5">' + STEPS.map(function (_, i) { return '<i class="' + (i < S.step ? 'on' : i === S.step ? 'cur' : '') + '"><\/i>'; }).join('') + '<\/div>' +
+      '<p class="small mut">Passo ' + (S.step + 1) + ' di 5 · ' + STEPS[S.step] + '<\/p>';
+  }
+  function wiz0() {
+    var p = S.p;
+    return '<div class="stack"><h1>Prima di iniziare<\/h1>' +
+      '<p>Sette domande veloci per capire se è prudente partire subito. Sono domande scritte per questa app: <b>non sono un test clinico validato<\/b> e non sostituiscono una visita.<\/p>' +
+      LIB.screening.map(function (q, i) {
+        var yes = has(p.screen, i);
+        return '<div class="card stack"><p>' + esc(q) + '<\/p><div class="row">' +
+          '<button class="chip" data-act="scr" data-i="' + i + '" data-v="0" aria-pressed="' + (!yes && has(p.screenAns || [], i)) + '">No<\/button>' +
+          '<button class="chip" data-act="scr" data-i="' + i + '" data-v="1" aria-pressed="' + yes + '">Sì<\/button><\/div><\/div>';
+      }).join('') +
+      (p.screen.length ? '<div class="warn"><b>Parlane prima con il tuo medico.<\/b> Puoi comunque generare un piano: sarà in modalità prudente (sforzo basso, niente salti, niente skill avanzate). Se hai sintomi come dolore al petto o svenimenti, fermati e fai controllare la situazione prima di allenarti.<\/div>' : '') +
+      '<label class="opt ' + (p.confirmed ? 'on' : '') + '"><input type="checkbox" data-bind="confirmed" ' + (p.confirmed ? 'checked' : '') + '><span>Ho risposto onestamente e capisco che questa app non è un consiglio medico. Mi alleno a mio rischio e fermo l\'esercizio se sento dolore acuto.<\/span><\/label>' +
+      '<button class="btn full" data-act="next" ' + (p.confirmed && (p.screenAns || []).length === LIB.screening.length ? '' : 'disabled') + '>Continua<\/button><\/div>';
+  }
+  function wiz1() {
+    var p = S.p;
+    return '<div class="stack"><h1>Chi sei<\/h1>' +
+      '<label class="f">Nome<input type="text" data-bind="name" value="' + esc(p.name) + '" autocomplete="given-name"><\/label>' +
+      '<div class="row" style="flex-wrap:nowrap"><label class="f" style="flex:1">Età<input type="number" inputmode="numeric" min="14" max="100" data-bind="age" value="' + esc(p.age) + '"><\/label>' +
+      '<label class="f" style="flex:1">Altezza (cm)<input type="number" inputmode="numeric" data-bind="height" value="' + esc(p.height) + '"><\/label>' +
+      '<label class="f" style="flex:1">Peso (kg)<input type="number" inputmode="numeric" data-bind="weight" value="' + esc(p.weight) + '"><\/label><\/div>' +
+      '<h3>Come ti alleni oggi<\/h3>' +
+      EXPS.map(function (x) { return '<button class="opt" data-act="exp" data-v="' + x[0] + '" aria-pressed="' + (p.exp === x[0]) + '"><span><b>' + x[1] + '<\/b><span class="small mut">' + x[2] + '<\/span><\/span><\/button>'; }).join('') +
+      (p.screen.length && p.exp !== 'sedentario' ? '<p class="small mut">Con le risposte di idoneità il piano resterà comunque prudente.<\/p>' : '') +
+      navBtns() + '<\/div>';
+  }
+  function wiz2() {
+    var p = S.p;
+    return '<div class="stack"><h1>Cosa hai a disposizione<\/h1><p class="mut small">Non serve nulla per partire: il piano si adatta. Seleziona solo ciò che hai davvero.<\/p>' +
+      Object.keys(LIB.equipment).map(function (k) {
+        return '<label class="opt ' + (has(p.eq, k) ? 'on' : '') + '"><input type="checkbox" data-tog="eq" data-v="' + k + '" ' + (has(p.eq, k) ? 'checked' : '') + '><span>' + esc(LIB.equipment[k]) + '<\/span><\/label>';
+      }).join('') +
+      '<h3>Limitazioni<\/h3><p class="mut small">Gli esercizi che le sollecitano vengono esclusi dal piano.<\/p>' +
+      Object.keys(LIB.limits).map(function (k) {
+        return '<label class="opt ' + (has(p.limits, k) ? 'on' : '') + '"><input type="checkbox" data-tog="limits" data-v="' + k + '" ' + (has(p.limits, k) ? 'checked' : '') + '><span>' + esc(LIB.limits[k]) + '<\/span><\/label>';
+      }).join('') + navBtns() + '<\/div>';
+  }
+  function wiz3() {
+    var p = S.p, adv = p.exp === 'attivo' || p.exp === 'esperto';
+    var skillChains = Object.keys(LIB.chains).filter(function (c) { return LIB.chains[c].group === 'skill'; });
+    return '<div class="stack"><h1>Il tuo obiettivo<\/h1>' +
+      GOALS.filter(function (g) { return g[0] !== 'skill' || adv; }).map(function (g) {
+        return '<button class="opt" data-act="goal" data-v="' + g[0] + '" aria-pressed="' + (p.goal === g[0]) + '"><span><b>' + g[1] + '<\/b><span class="small mut">' + g[2] + '<\/span><\/span><\/button>';
+      }).join('') +
+      (!adv ? '<p class="small mut">Le skill avanzate si sbloccano per chi si allena già con regolarità.<\/p>' : '') +
+      (adv && !p.screen.length ? '<h3>Skill da integrare<\/h3><p class="small mut">Opzionali. Ognuna richiede una base di forza: se non la hai, il piano te lo dice.<\/p>' +
+        skillChains.map(function (k) {
+          var c = LIB.chains[k];
+          return '<label class="opt ' + (has(p.skills, k) ? 'on' : '') + '"><input type="checkbox" data-tog="skills" data-v="' + k + '" ' + (has(p.skills, k) ? 'checked' : '') + '><span><b>' + esc(c.label) + '<\/b><span class="small mut">' + esc(c.reqmsg || c.sub) + '<\/span><\/span><\/label>';
+        }).join('') : '') +
+      '<h3>Tempo<\/h3><div class="chips">' + [15, 20, 30, 45, 60, 90].map(function (m) { return '<button class="chip" data-act="min" data-v="' + m + '" aria-pressed="' + (+p.minutes === m) + '">' + m + ' min<\/button>'; }).join('') + '<\/div>' +
+      '<h3>Giorni a settimana<\/h3><div class="chips">' + E.DAYS_SHORT.map(function (d, i) { return '<button class="chip" data-act="day" data-v="' + i + '" aria-pressed="' + has(p.days, i) + '">' + d + '<\/button>'; }).join('') + '<\/div>' +
+      (p.days.length === 0 ? '<div class="warn">Scegli almeno un giorno.<\/div>' : '') +
+      (p.days.length >= 6 ? '<div class="warn">Sei o sette giorni sono molti: il piano alterna parti alta/bassa e sessioni leggere, ma se parti da poco meglio tre o quattro.<\/div>' : '') +
+      '<h3>Durata del programma<\/h3><div class="chips">' + [4, 8, 12].map(function (w) { return '<button class="chip" data-act="weeks" data-v="' + w + '" aria-pressed="' + (+p.weeks === w) + '">' + w + ' settimane<\/button>'; }).join('') + '<\/div>' +
+      '<p class="small mut">Ogni quarta settimana è di scarico: meno serie per recuperare.<\/p>' +
+      navBtns(p.days.length === 0) + '<\/div>';
+  }
+  function wiz4() {
+    var p = S.p, pr = profile();
+    var tests = LIB.tests.filter(function (t) {
+      if (t.skill && !has(pr.skills, t.chain) ) return false;
+      if (t.skill && (p.screen.length || p.exp === 'sedentario')) return false;
+      return t.needs.every(function (n) { return E.haveEq(pr, n); });
+    });
+    return '<div class="stack"><h1>Trova il tuo punto di partenza<\/h1>' +
+      '<p class="mut small">Rispondi con sincerità: partire un gradino più in basso è sempre meglio che partire troppo in alto. Se non rispondi, uso il livello che hai dichiarato.<\/p>' +
+      tests.map(function (t) {
+        var cur = p.starts[t.chain];
+        return '<div class="card stack"><p><b>' + esc(t.q) + '<\/b><\/p>' +
+          t.opts.map(function (o) { return '<button class="opt" data-act="start" data-c="' + t.chain + '" data-v="' + o.start + '" aria-pressed="' + (cur === o.start) + '"><span>' + esc(o.label) + '<\/span><\/button>'; }).join('') + '<\/div>';
+      }).join('') +
+      '<div class="row"><button class="btn sec" data-act="back">Indietro<\/button><button class="btn tape" data-act="gen" style="flex:1">Crea il piano<\/button><\/div><\/div>';
+  }
+  function navBtns(dis) {
+    return '<div class="row"><button class="btn sec" data-act="back">Indietro<\/button><button class="btn" style="flex:1" data-act="next" ' + (dis ? 'disabled' : '') + '>Continua<\/button><\/div>';
+  }
+  function wizard() {
+    var f = [wiz0, wiz1, wiz2, wiz3, wiz4][S.step];
+    return '<div class="stack">' + stepBar() + f() + '<\/div>';
+  }
+
+  /* ------------------------------------------------ piano */
+  function sessionKey(w, d) { return w + '-' + d; }
+  function weekDone(w) { return plan.sessions.filter(function (s) { return S.done[sessionKey(w, s.d)]; }).length; }
+  function planView() {
+    if (!plan) rebuild();
+    if (!plan) return '<div class="warn">Non riesco a generare il piano con questi dati. Rivedi i passi.<\/div>';
+    var p = S.p, wk = plan.weeks[Math.min(S.wk, plan.weeks.length - 1)];
+    var gl = GOALS.filter(function (g) { return g[0] === p.goal; })[0];
+    var expl = EXPS.filter(function (g) { return g[0] === p.exp; })[0];
+    var total = plan.weeks.length * plan.sessions.length, done = Object.keys(S.done).filter(function (k) { return S.done[k]; }).length;
+    var out = '<div class="stack"><div class="card stack"><h1>' + (p.name ? 'Piano di ' + esc(p.name) : 'Il tuo piano') + '<\/h1>' +
+      '<div class="row"><span class="tag tp">' + gl[1] + '<\/span><span class="tag">' + expl[1] + '<\/span><span class="tag">' + plan.sessions.length + ' giorni<\/span><span class="tag">' + p.minutes + ' min<\/span>' + (plan.meta.caution ? '<span class="tag">Prudente<\/span>' : '') + '<\/div>' +
+      '<div class="timeline">' + E.DAYS_SHORT.map(function (d, i) { return '<div class="' + (has(plan.profile.days, i) ? 'on' : '') + '">' + d + '<\/div>'; }).join('') + '<\/div>' +
+      '<p class="small mut">Completate ' + done + ' di ' + total + ' sessioni · ' + esc(plan.rir) + '<\/p>' +
+      '<div class="row"><button class="btn sec" data-act="export">Esporta il piano<\/button><button class="btn sec" data-act="edit">Modifica profilo<\/button><\/div><\/div>';
+    plan.warnings.forEach(function (w) { out += '<div class="warn">' + esc(w) + '<\/div>'; });
+    out += '<div class="chips" role="group" aria-label="Settimane">' + plan.weeks.map(function (w) {
+      var dn = weekDone(w.w) === plan.sessions.length;
+      return '<button class="chip ' + (dn ? 'done' : '') + '" data-act="wk" data-v="' + w.w + '" aria-pressed="' + (w.w === wk.w) + '">S' + (w.w + 1) + (w.deload ? ' ↓' : '') + '<\/button>';
+    }).join('') + '<\/div>';
+    out += '<div class="row"><span class="tag tp">Settimana ' + (wk.w + 1) + '<\/span><span class="small mut">Blocco ' + (wk.block + 1) + ' · ' + wk.phase + (wk.deload ? ' · serie dimezzate' : '') + '<\/span><\/div>';
+    wk.sessions.forEach(function (s) {
+      var k = sessionKey(wk.w, s.d), dn = !!S.done[k];
+      out += '<section class="card stack" aria-label="' + esc(s.dayName) + '"><div class="row" style="justify-content:space-between"><div><h2>' + s.dayName + '<\/h2><p class="small mut">' + esc(s.label) + ' · circa ' + s.estMin + ' min<\/p><\/div>' +
+        '<label class="checkrow"><input type="checkbox" data-done="' + k + '" ' + (dn ? 'checked' : '') + '><span class="small"><b>Fatta<\/b><\/span><\/label><\/div>' +
+        '<details><summary>Riscaldamento · ' + s.warm.min + ' min<\/summary>' + listItems(s.warm.items) + '<\/details>';
+      if (s.skills.length) out += '<div><h3>Skill (a freddo, con energia)<\/h3>' + s.skills.map(function (e) { return exRow(e, 'skill'); }).join('') + '<\/div>';
+      out += '<div><h3>Forza<\/h3>' + s.strength.map(function (e) { return exRow(e); }).join('') + '<\/div>' + condHtml(s.cond) +
+        '<details><summary>Defaticamento · ' + s.cool.min + ' min<\/summary>' + listItems(s.cool.items) + '<\/details><\/section>';
+    });
+    return out + '<\/div>';
+  }
+
+  /* ------------------------------------------------ circuito rapido */
+  var AREA = [['full', 'Corpo intero'], ['upper', 'Parte alta'], ['lower', 'Gambe'], ['core', 'Core'], ['cardio', 'Cardio']];
+  function circuitView() {
+    var o = S.circOpt, c = S.circ;
+    var out = '<div class="stack"><h1>Circuito rapido<\/h1><p class="mut small">Un circuito singolo, costruito dalle tue progressioni al tuo livello attuale. Non sostituisce il piano.<\/p>' +
+      '<h3>Zona<\/h3><div class="chips">' + AREA.map(function (a) { return '<button class="chip" data-act="carea" data-v="' + a[0] + '" aria-pressed="' + (o.area === a[0]) + '">' + a[1] + '<\/button>'; }).join('') + '<\/div>' +
+      '<h3>Durata<\/h3><div class="chips">' + [8, 10, 15, 20].map(function (m) { return '<button class="chip" data-act="cmin" data-v="' + m + '" aria-pressed="' + (o.minutes === m) + '">' + m + ' min<\/button>'; }).join('') + '<\/div>' +
+      '<h3>Esercizi<\/h3><div class="chips">' + [3, 4, 5, 6].map(function (m) { return '<button class="chip" data-act="cn" data-v="' + m + '" aria-pressed="' + (o.n === m) + '">' + m + '<\/button>'; }).join('') + '<\/div>' +
+      '<button class="btn tape full" data-act="circ">Genera circuito<\/button>';
+    if (c) {
+      var head = c.mode === 'intervalli' ? c.rounds + ' giri · 30 s di lavoro, 30 s di pausa' : 'AMRAP ' + c.minutes + ' minuti';
+      out += '<div class="card stack"><h2>' + head + '<\/h2>' + c.items.map(function (it) {
+        var ex = E.byId(it.exId);
+        return '<div class="ex"><div class="nm"><span>' + esc(ex.name) + '<\/span><span class="rx">' + (it.reps ? it.reps + (ex.per ? ' /lato' : '') : it.secs + ' s') + '<\/span><\/div>' + stepsHtml(ex) + '<\/div>';
+      }).join('') + '<button class="btn sec" data-act="exportc">Esporta<\/button><\/div>';
+    }
+    return out + '<\/div>';
+  }
+
+  /* ------------------------------------------------ libreria */
+  function libraryView() {
+    var chains = Object.keys(LIB.chains), cid = S.ladderChain;
+    var lad = E.ladder(cid, profile());
+    var groups = { forza: 'Forza', core: 'Core', cond: 'Condizionamento', skill: 'Skill' };
+    var out = '<div class="stack"><h1>Progressioni<\/h1><p class="mut small">Ogni movimento è una scala: parti dal gradino giusto e sali quando completi il criterio. Il gradino giallo è il tuo livello attuale; quelli grigi sono esclusi da attrezzi, limitazioni o livello.<\/p>' +
+      '<div class="chips">' + chains.map(function (c) { return '<button class="chip" data-act="lc" data-v="' + c + '" aria-pressed="' + (c === cid) + '">' + esc(LIB.chains[c].label) + '<\/button>'; }).join('') + '<\/div>' +
+      '<div class="card stack"><h2>' + esc(lad.label) + '<\/h2>' + (lad.disabled ? '<div class="warn">' + esc(lad.disabled) + '<\/div>' : '') + '<div class="ladder">' +
+      lad.steps.slice().reverse().map(function (s) {
+        var why = s.blocked === 'eq' ? 'serve ' + s.detail.map(function (x) { return LIB.equipment[x].toLowerCase(); }).join(', ') : s.blocked === 'limit' ? 'esclusa per: ' + s.detail.map(function (x) { return LIB.limits[x].toLowerCase(); }).join(', ') : s.blocked === 'cap' ? 'si sblocca con l\'esperienza' : '';
+        return '<div class="stepbar ' + (s.current ? 'cur' : '') + (s.blocked ? ' blk' : '') + '"><span class="lv">L' + s.lv + '<\/span><span style="flex:1;min-width:0">' + esc(s.name) + (why ? '<span class="small mut" style="display:block">' + esc(why) + '<\/span>' : '') + '<\/span>' + (s.current ? '<span class="tag tp">Tu<\/span>' : '') + '<\/div>';
+      }).join('') + '<\/div><\/div><\/div>';
+    return out;
+  }
+
+  /* ------------------------------------------------ info */
+  function infoView() {
+    return '<div class="stack"><h1>Info<\/h1>' +
+      '<div class="card stack"><h3>Come funziona<\/h3><p class="small">Il piano parte dal tuo livello dichiarato e dai test di collocazione, filtra gli esercizi per attrezzi e limitazioni, e alza la difficoltà solo quando raggiungi il criterio di passaggio. Ogni quarta settimana riduce le serie. Le skill che caricano i tendini (front lever, planche, muscle-up) non sono mai in giorni consecutivi.<\/p><\/div>' +
+      '<div class="card stack"><h3>Limiti da conoscere<\/h3><ul class="small" style="margin:0;padding-left:20px"><li>Non è un consiglio medico e le domande iniziali non sono un test clinico validato.<\/li><li>Le regole su recuperi, frequenza delle skill e criteri di passaggio sono scelte di buona pratica, non risultati di studi su questo programma.<\/li><li>La libreria contiene 93 esercizi curati; non ci sono video o immagini.<\/li><li>Il progresso è salvato solo su questo dispositivo.<\/li><\/ul><\/div>' +
+      '<div class="card stack"><h3>Dati e licenza<\/h3><p class="small">I testi di molti esercizi derivano dal dataset <i>exercises-dataset<\/i> di Hasan Emir Yıldırım, usato con licenza MIT. Le immagini e le animazioni di quel progetto sono © Gym visual e <b>non sono usate<\/b> in questa app.<\/p><pre class="lic">' + esc(LICENSE) + '<\/pre><\/div>' +
+      '<div class="card stack"><h3>Dati personali<\/h3>' + (S.confirmReset
+        ? '<p class="small">Cancello profilo e progressi da questo dispositivo?<\/p><div class="row"><button class="btn" data-act="reset2">Sì, cancella<\/button><button class="btn sec" data-act="reset0">Annulla<\/button><\/div>'
+        : '<button class="btn sec" data-act="reset1">Cancella profilo e progressi<\/button>') + '<\/div><\/div>';
+  }
+
+  /* ------------------------------------------------ export */
+  function planText() {
+    var L = ['PIANO DI ALLENAMENTO' + (S.p.name ? ' - ' + S.p.name : ''), 'Obiettivo: ' + S.p.goal + ' | ' + plan.sessions.length + ' giorni | ' + S.p.minutes + ' min | ' + plan.weeks.length + ' settimane', plan.rir, ''];
+    plan.warnings.forEach(function (w) { L.push('ATTENZIONE: ' + w); });
+    plan.weeks.forEach(function (wk) {
+      L.push('', '=== SETTIMANA ' + (wk.w + 1) + ' (' + wk.phase + (wk.deload ? ', scarico' : '') + ') ===');
+      wk.sessions.forEach(function (s) {
+        L.push('', s.dayName + ' - ' + s.label + ' (~' + s.estMin + ' min)');
+        s.skills.concat(s.strength).forEach(function (e) { L.push('  ' + exName(e.exId) + ': ' + rx(e) + ', recupero ' + e.rest + ' s'); });
+        if (s.cond) L.push('  Condizionamento: ' + (s.cond.format === 'intervalli' ? s.cond.rounds + ' giri 30/30' : 'AMRAP ' + s.cond.min + ' min') + ' - ' + s.cond.items.map(function (i) { return (i.reps || i.secs + 's') + ' ' + exName(i.exId); }).join(', '));
+      });
+    });
+    L.push('', 'Non è un consiglio medico. Testi esercizi in parte da exercises-dataset (MIT, Hasan Emir Yildirim).');
+    return L.join('\n');
+  }
+  function circText() {
+    var c = S.circ;
+    return ['CIRCUITO', c.mode === 'intervalli' ? c.rounds + ' giri 30/30' : 'AMRAP ' + c.minutes + ' min'].concat(c.items.map(function (i) { return '- ' + exName(i.exId) + ': ' + (i.reps ? i.reps : i.secs + ' s'); })).join('\n');
+  }
+  function exportText(name, text) {
+    if (typeof claude === 'undefined' || !claude.use) {
+      try {
+        var u = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
+        var a = document.createElement('a'); a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function () { URL.revokeObjectURL(u); }, 4000); toast('File salvato');
+      } catch (e) { navigator.clipboard.writeText(text).then(function () { toast('Copiato negli appunti'); }, function () { toast('Esportazione non riuscita'); }); }
+      return;
+    }
+    Promise.resolve(claude.use('downloads')).then(function (d) {
+      if (!d) { return navigator.clipboard.writeText(text).then(function () { toast('Copiato negli appunti'); }); }
+      return d.save({ filename: name, data: text }).then(function (r) { if (r) toast('Esportato'); });
+    }).catch(function () { toast('Esportazione non riuscita'); });
+  }
+
+  /* ------------------------------------------------ render */
+  var TABS = [['piano', 'Piano'], ['circuito', 'Circuito'], ['libreria', 'Scale'], ['info', 'Info']];
+  function render() {
+    var body;
+    if (S.tab === 'piano') body = S.step >= 5 ? planView() : wizard();
+    else if (S.tab === 'circuito') body = S.step >= 5 ? circuitView() : '<div class="stack"><h1>Circuito rapido<\/h1><div class="warn">Completa prima il profilo nel tab Piano: servono livello, attrezzi e limitazioni per costruire un circuito adatto a te.<\/div><\/div>';
+    else if (S.tab === 'libreria') body = libraryView();
+    else body = infoView();
+    document.getElementById('app').innerHTML = '<div class="top"><span class="brand"><i><\/i>Palestra Libera<\/span><\/div>' + body;
+    document.getElementById('tabs').innerHTML = TABS.map(function (t) { return '<button role="tab" data-act="tab" data-v="' + t[0] + '" aria-selected="' + (S.tab === t[0]) + '">' + t[1] + '<\/button>'; }).join('');
+    save();
+  }
+  function go(fn) { fn(); render(); }
+
+  document.addEventListener('click', function (ev) {
+    var b = ev.target.closest('[data-act]');
+    if (!b) return;
+    var a = b.dataset.act, v = b.dataset.v, p = S.p;
+    var top = function () { window.scrollTo(0, 0); };
+    go(function () {
+      if (a === 'tab') { S.tab = v; top(); }
+      else if (a === 'scr') { p.screenAns = p.screenAns || []; var i = +b.dataset.i; if (!has(p.screenAns, i)) p.screenAns.push(i); var idx = p.screen.indexOf(i); if (v === '1' && idx < 0) p.screen.push(i); if (v === '0' && idx >= 0) p.screen.splice(idx, 1); }
+      else if (a === 'next') { S.step = Math.min(4, S.step + 1); top(); }
+      else if (a === 'back') { S.step = Math.max(0, S.step - 1); top(); }
+      else if (a === 'exp') { p.exp = v; if (v === 'sedentario') p.skills = []; if (p.goal === 'skill' && v !== 'attivo' && v !== 'esperto') p.goal = 'salute'; p.starts = {}; }
+      else if (a === 'goal') { p.goal = v; }
+      else if (a === 'min') p.minutes = +v;
+      else if (a === 'weeks') p.weeks = +v;
+      else if (a === 'day') { var d = +v; toggle(p.days, d); p.days.sort(function (x, y) { return x - y; }); }
+      else if (a === 'start') { p.starts[b.dataset.c] = p.starts[b.dataset.c] === v ? undefined : v; if (p.starts[b.dataset.c] === undefined) delete p.starts[b.dataset.c]; }
+      else if (a === 'gen') { S.step = 5; S.wk = 0; S.done = {}; rebuild(); top(); }
+      else if (a === 'edit') { S.step = 1; top(); }
+      else if (a === 'wk') { S.wk = +v; }
+      else if (a === 'export') exportText('piano-allenamento.txt', planText());
+      else if (a === 'exportc') exportText('circuito.txt', circText());
+      else if (a === 'carea') S.circOpt.area = v;
+      else if (a === 'cmin') S.circOpt.minutes = +v;
+      else if (a === 'cn') S.circOpt.n = +v;
+      else if (a === 'circ') S.circ = E.quickCircuit(profile(), S.circOpt);
+      else if (a === 'lc') S.ladderChain = v;
+      else if (a === 'reset1') S.confirmReset = true;
+      else if (a === 'reset0') S.confirmReset = false;
+      else if (a === 'reset2') { S = JSON.parse(JSON.stringify(DEF)); plan = null; try { localStorage.removeItem(KEY); } catch (e) {} }
+    });
+  });
+  document.addEventListener('change', function (ev) {
+    var t = ev.target, p = S.p;
+    if (t.dataset.bind) { p[t.dataset.bind] = t.type === 'checkbox' ? t.checked : t.value; if (t.type === 'checkbox') render(); else save(); }
+    else if (t.dataset.tog) { toggle(p[t.dataset.tog], t.dataset.v); if (t.dataset.tog !== 'skills') p.starts = p.starts; render(); }
+    else if (t.dataset.done) { S.done[t.dataset.done] = t.checked; render(); }
+  });
+
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+  if (S.step >= 5) rebuild();
+  render();
+})();
+</script>
+<script>if("serviceWorker" in navigator)window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})});</script></body></html>
