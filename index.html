@@ -37,7 +37,12 @@ input[type=text],input[type=number],select{background:var(--bg);border:1.5px sol
 .chip{border:1.5px solid var(--line);background:var(--card);border-radius:999px;padding:8px 14px;min-height:40px;font-weight:600;cursor:pointer}
 .chip[aria-pressed=true]{background:var(--acc);color:var(--acc-fg);border-color:var(--acc)}
 .chip.done::after{content:" ✓"}
-.warn{background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:12px 14px;font-size:.92rem}
+.warn,.note{border-radius:10px;padding:12px 14px;font-size:.92rem;display:flex;gap:10px;align-items:flex-start}
+.warn{background:var(--warn-bg);color:var(--warn)}
+.note{background:var(--acc-soft);color:var(--fg)}
+.qbtn{flex:none;width:36px;height:36px;border-radius:50%;border:1.5px solid currentColor;background:transparent;color:inherit;font:700 1rem Barlow,sans-serif;cursor:pointer}
+.modal{position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--card);color:var(--fg);width:100%;max-width:640px;border-radius:14px 14px 0 0;padding:20px max(20px,env(safe-area-inset-left,0px)) calc(20px + env(safe-area-inset-bottom,0px));max-height:85vh;overflow:auto}
 .steps{display:flex;gap:4px}.steps i{flex:1;height:6px;border-radius:3px;background:var(--line)}.steps i.on{background:var(--acc)}.steps i.cur{background:var(--tape)}
 .tag{display:inline-block;font:700 .72rem 'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.08em;padding:2px 8px;border-radius:4px;background:var(--acc-soft);color:var(--fg)}
 .tag.tp{background:var(--tape);color:var(--tape-fg)}
@@ -212,6 +217,8 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
       res.steps = [];
       return res;
     }
+    const advN = (p.adv && p.adv[cid]) || 0;
+    idx = Math.min(steps.length - 1, idx + advN);
     res.idx = idx;
     return res;
   }
@@ -253,9 +260,10 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
     const b = Math.floor(w / 4), wb = w % 4, deload = wb === 3;
     const skill = !!opts.skill;
     const goal = skill ? 'skill' : p.goal;
-    const f = frac(goal, wb, b);
+    const bb = (p.adv && p.adv[ex.chain]) ? 0 : b;
+    const f = frac(goal, wb, bb);
     const target = Math.round(ex.lo + f * (ex.hi - ex.lo));
-    let sets = opts.sets != null ? opts.sets : baseSets(p, b);
+    let sets = opts.sets != null ? opts.sets : baseSets(p, bb);
     if (deload) sets = Math.max(1, Math.ceil(sets / 2));
     return { sets: sets, target: target, rest: restFor(p, ex, skill) };
   }
@@ -297,13 +305,13 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
       }
     return g;
   }
-  function scheduleSkills(days, skills) {
+  function scheduleSkills(days, skills, freqs) {
     const n = days.length;
     const plan = days.map(function () { return []; });
     const dropped = [];
     const idxs = days.map(function (_, i) { return i; });
     skills.forEach(function (sk) {
-      const want = Math.min(SKILL_FREQ[sk] || 1, n);
+      const want = Math.min((freqs && freqs[sk]) || SKILL_FREQ[sk] || 1, n);
       const tendon = TENDON_SKILLS.indexOf(sk) >= 0;
       let placed = false;
       for (let f = want; f >= 1 && !placed; f--) {
@@ -368,6 +376,8 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
     q.limits = (p.limits || []).slice();
     q.skills = (p.skills || []).slice();
     q.starts = Object.assign({}, p.starts || {});
+    q.adv = Object.assign({}, p.adv || {});
+    q.checked = p.checked || 0;
     q.exp = p.exp || 'ripartenza';
     q.goal = p.goal || 'salute';
     q.minutes = Math.max(15, Math.min(90, p.minutes || 30));
@@ -384,25 +394,59 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
     const chains = {};
     Object.keys(LIB.chains).forEach(function (cid) { chains[cid] = resolve(cid, p, memo); });
 
+    const W = function (t, why, fix, lvl) { warnings.push({ t: t, why: why, fix: fix, lvl: lvl || 'warn' }); };
+    const TENDON_WHY = 'Front lever, planche e muscle-up caricano molto gomiti, spalle e tendini, che si adattano più lentamente dei muscoli. Per questo l\'app non li mette mai in giorni consecutivi e mai due nello stesso giorno. È una regola prudente di buona pratica scelta da me, non un risultato di studi su questo programma.';
     if (p.caution)
-      warnings.push('Hai risposto sì ad almeno una domanda di idoneità. Parlane con il medico prima di iniziare: il piano è in modalità prudente (intensità bassa, nessun salto, nessuna skill avanzata).');
+      W('Hai risposto sì ad almeno una domanda di idoneità. Parlane con il medico prima di iniziare: il piano è in modalità prudente (intensità bassa, nessun salto, nessuna skill avanzata).',
+        'Hai risposto "sì" ad almeno una delle domande iniziali. Non significa che tu abbia un problema, ma che prima di allenarti con intensità conviene un parere medico. Le domande sono scritte per questa app e non sono un test clinico validato.',
+        'Parla con il tuo medico. Intanto il piano resta prudente: sforzo basso, niente salti, niente skill avanzate. Dopo la visita puoi rifare le domande da "Modifica profilo".');
     if (chains.pull_v.idx < 0 && chains.pull_h.steps.length && chains.pull_h.steps.every(function (s) { return s.eq.length === 0; }))
-      warnings.push('Senza sbarra né tavolo robusto la tirata resta limitata: una sbarra da porta o due anelli cambiano molto il risultato.');
+      W('Senza sbarra né tavolo robusto la tirata resta limitata: una sbarra da porta o due anelli cambiano molto il risultato.',
+        'Trazioni e rematori richiedono un punto fisso a cui appendersi o un tavolo molto robusto. Senza, l\'app può proporre solo tirate leggere a terra, che non allenano la schiena come servirebbe, e le skill di tirata restano bloccate.',
+        'Una sbarra da porta costa poco. In alternativa due anelli o cinghie appese a un punto sicuro. Poi aggiungila in "Modifica profilo", passo Attrezzi.');
     p.skills.forEach(function (sk) {
-      if (chains[sk].disabled && !chains[sk].unselected)
-        warnings.push(LIB.chains[sk].label + ': ' + chains[sk].disabled);
+      const c = chains[sk];
+      if (c.disabled && !c.unselected) {
+        const dz = c.disabled;
+        W(LIB.chains[sk].label + ': ' + dz,
+          dz + ' Ogni skill richiede una base di forza e articolazioni sane: l\'app non te la propone finché non ci sono, per proteggere gomiti e spalle.',
+          /limitazion/.test(dz) ? 'Se la limitazione è passata, toglila da "Modifica profilo". Altrimenti scegli un\'altra skill.'
+            : /Prerequisito/.test(dz) ? 'Allena la base nel piano (trazioni, push-up). Quando avanzi di livello con il check di fine blocco, la skill si sblocca da sola.'
+            : /prudente|sedentario|Le skill/.test(dz) ? 'Completa la fase di base: le skill si sbloccano dopo, con un nuovo piano.'
+            : 'Controlla attrezzi e livello in "Modifica profilo".');
+      }
     });
 
     if (p.minutes < 30 && activeSkillsPre(p, chains))
-      warnings.push('Con meno di 30 minuti a sessione le skill avanzate restano fuori: servono riscaldamento specifico e pause lunghe.');
+      W('Con meno di 30 minuti a sessione le skill avanzate restano fuori: servono riscaldamento specifico e pause lunghe.',
+        'Una skill richiede energia fresca, un riscaldamento specifico e pause da 75 secondi o più tra i tentativi. In meno di 30 minuti non c\'è spazio per farle bene insieme alla forza.',
+        'Porta il tempo a 30 minuti o più in "Modifica profilo", oppure tieni questo piano come fase di forza di base.');
     const n = p.days.length;
     const kinds = KINDS[n] || KINDS[3];
     const activeSkills = p.skills.filter(function (sk) { return chains[sk] && chains[sk].idx >= 0; });
-    const sched = scheduleSkills(p.days, activeSkills);
+    const freqs = {}, reduced = [];
+    let sched;
+    for (;;) {
+      sched = scheduleSkills(p.days, activeSkills, freqs);
+      const lost = sched.dropped.filter(function (d) { return !d.partial; }).map(function (d) { return d.skill; });
+      if (!lost.length) break;
+      const cand = activeSkills.filter(function (sk) {
+        return lost.indexOf(sk) < 0 && TENDON_SKILLS.indexOf(sk) >= 0 && (freqs[sk] || SKILL_FREQ[sk] || 1) > 1;
+      });
+      if (!cand.length) break;
+      freqs[cand[0]] = 1; reduced.push({ skill: cand[0], for: lost });
+    }
+    reduced.forEach(function (r) {
+      W(LIB.chains[r.skill].label + ': con i tuoi giorni la porto a una volta a settimana per far entrare ' + r.for.map(function (x) { return LIB.chains[x].label; }).join(' e ') + '.',
+        'Con i giorni scelti hai pochi posti per le skill che caricano i tendini. ' + TENDON_WHY + ' Tenere due skill a una volta a settimana è meglio che farne una sola a due volte, ma i progressi su ciascuna saranno più lenti.',
+        'Per tenere entrambe a due volte a settimana servono giorni più distanziati, ad esempio lunedì, martedì, giovedì e sabato. Puoi cambiarli in "Modifica profilo".', 'info');
+    });
     sched.dropped.forEach(function (d) {
-      warnings.push(LIB.chains[d.skill].label + (d.partial
-        ? ': con i giorni scelti riesco a inserirla solo ' + d.freq + ' volta a settimana, per tenere almeno un giorno libero tra le skill che caricano i tendini.'
-        : ': non trovo un giorno compatibile con le altre skill, per questo l\'ho lasciata fuori.'));
+      W(LIB.chains[d.skill].label + (d.partial
+        ? ': con i giorni scelti riesco a inserirla solo ' + d.freq + ' volta a settimana.'
+        : ': non trovo un giorno compatibile con le altre skill, per questo l\'ho lasciata fuori.'),
+        'Con i giorni scelti non c\'è posto sufficiente. ' + TENDON_WHY,
+        'Cambia i giorni (servono giorni non consecutivi) oppure togli una delle skill in "Modifica profilo".');
     });
 
     const m = p.minutes;
@@ -503,7 +547,7 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
     const weeks = [];
     for (let w = 0; w < p.weeks; w++) {
       const b = Math.floor(w / 4), wb = w % 4;
-      const wk = { w: w, block: b, wb: wb, phase: (b >= 1 && wb === 0) ? 'Ripresa' : PHASES[wb], deload: wb === 3, sessions: [] };
+      const wk = { w: w, block: b, wb: wb, phase: (b >= 1 && wb === 0) ? 'Ripresa' : PHASES[wb], deload: wb === 3, provisional: b > p.checked, sessions: [] };
       sessions.forEach(function (s) {
         const ws = {
           d: s.d, weekday: s.weekday, dayName: s.dayName, kind: s.kind, label: s.label,
@@ -525,14 +569,47 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
         ws.skills.forEach(function (e) { est += e.sets * (workSec(BY[e.exId], e.target) + e.rest) / 60; });
         ws.strength.forEach(function (e) { est += e.sets * (workSec(BY[e.exId], e.target) + e.rest) / 60; });
         if (ws.cond) est += ws.cond.min;
+        const tm = function (e) { return e.sets * (workSec(BY[e.exId], e.target) + e.rest) / 60; };
+        const pool = ws.strength.concat(ws.skills);
+        while (est > m * 1.05 && pool.some(function (e) { return e.sets > 1; })) {
+          pool.sort(function (a, b) { return tm(b) - tm(a); });
+          const big = pool.filter(function (e) { return e.sets > 1; })[0];
+          est -= (big.sets * (workSec(BY[big.exId], big.target) + big.rest) - (big.sets - 1) * (workSec(BY[big.exId], big.target) + big.rest)) / 60;
+          big.sets -= 1;
+        }
         ws.estMin = Math.round(est);
         wk.sessions.push(ws);
       });
       weeks.push(wk);
     }
 
+    // cosa aspettarsi: stime prudenti, non promesse
+    const blocks = Math.ceil(p.weeks / 4);
+    const expect = [];
+    function proj(cid, isSkill, freq) {
+      const r = chains[cid];
+      if (!r || r.idx < 0) return;
+      const rate = isSkill ? (freq >= 2 ? 0.5 : 0.25) : 1;
+      const gain = Math.floor(blocks * rate);
+      const to = Math.min(r.steps.length - 1, r.idx + gain);
+      const full = CH[cid][CH[cid].length - 1];
+      expect.push({ chain: cid, label: LIB.chains[cid].label, skill: isSkill, from: r.steps[r.idx].name, to: r.steps[to].name,
+        steps: to - r.idx, goal: full.name, reachesGoal: r.steps[to].id === full.id,
+        capped: !isSkill && to === r.steps.length - 1 && CH[cid].length > r.steps.length });
+    }
+    ['push_h', chains.pull_v.idx >= 0 ? 'pull_v' : 'pull_h', 'squat', 'lunge'].forEach(function (c) { proj(c, false); });
+    activeSkills.forEach(function (sk) {
+      const days = sessions.filter(function (s) { return s.skills.some(function (x) { return x.chain === sk; }); }).length;
+      if (days > 0) proj(sk, true, days);
+    });
+    expect.filter(function (e) { return e.skill && !e.reachesGoal; }).forEach(function (e) {
+      W(e.label + ': in ' + p.weeks + ' settimane il traguardo realistico è «' + e.to + '», non «' + e.goal + '».',
+        'Ogni gradino di una skill richiede in media molte settimane e la forza dei tendini cresce più lentamente di quella dei muscoli. Le mie stime (un gradino ogni 8 settimane con due sedute a settimana, uno ogni 16 con una seduta) sono prudenti e non sono una promessa: contano recupero, sonno, peso corporeo e costanza. Il piano non può saltare i gradini intermedi.',
+        'Considera questo piano come la prima tappa. Alla fine rifai il profilo con i risultati nuovi e prosegui. Con 12 settimane e due sedute a settimana per la skill avanzi più in fretta.', 'info');
+    });
+
     return {
-      profile: p, warnings: warnings, rir: rirText(p),
+      profile: p, warnings: warnings, expect: expect, rir: rirText(p),
       chains: summarizeChains(chains), sessions: sessions, weeks: weeks,
       meta: { n: n, minutes: m, goal: p.goal, exp: p.exp, caution: !!p.caution, capLv: capLv(p) },
     };
@@ -705,7 +782,7 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
     ['skill', 'Skill avanzate', 'Verticale, front lever, muscle-up, planche con base di forza.'],
   ];
   var DEF = {
-    step: 0, tab: 'piano', wk: 0, done: {}, circ: null, circOpt: { area: 'full', minutes: 10, n: 4 },
+    step: 0, tab: 'piano', wk: 0, done: {}, adv: {}, checked: 0, help: null, chk: {}, circ: null, circOpt: { area: 'full', minutes: 10, n: 4 },
     ladderChain: 'push_h', confirmReset: false,
     p: { name: '', age: '', height: '', weight: '', exp: 'ripartenza', eq: [], limits: [], screen: [], confirmed: false,
          goal: 'salute', minutes: 30, days: [0, 2, 4], weeks: 8, skills: [], starts: {} },
@@ -716,7 +793,7 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
   function load() {
     try {
       var r = JSON.parse(localStorage.getItem(KEY));
-      if (r && r.p) { r.p = Object.assign({}, DEF.p, r.p); return Object.assign({}, DEF, r); }
+      if (r && r.p) { r.p = Object.assign({}, DEF.p, r.p); r = Object.assign({}, DEF, r); r.help = null; r.chk = {}; return r; }
     } catch (e) {}
     return JSON.parse(JSON.stringify(DEF));
   }
@@ -727,7 +804,7 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
   function profile() {
     var p = S.p;
     return { exp: p.exp, goal: p.goal, eq: p.eq, limits: p.limits, skills: p.exp === 'sedentario' ? [] : p.skills,
-             caution: p.screen.length > 0, minutes: +p.minutes, weeks: +p.weeks, days: p.days, starts: p.starts };
+             caution: p.screen.length > 0, minutes: +p.minutes, weeks: +p.weeks, days: p.days, starts: p.starts, adv: S.adv || {}, checked: S.checked || 0 };
   }
   function rebuild() { try { plan = E.buildPlan(profile()); } catch (e) { plan = null; console.error(e); } }
   var toastT;
@@ -872,12 +949,16 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
       '<div class="timeline">' + E.DAYS_SHORT.map(function (d, i) { return '<div class="' + (has(plan.profile.days, i) ? 'on' : '') + '">' + d + '<\/div>'; }).join('') + '<\/div>' +
       '<p class="small mut">Completate ' + done + ' di ' + total + ' sessioni · ' + esc(plan.rir) + '<\/p>' +
       '<div class="row"><button class="btn sec" data-act="export">Esporta il piano<\/button><button class="btn sec" data-act="edit">Modifica profilo<\/button><\/div><\/div>';
-    plan.warnings.forEach(function (w) { out += '<div class="warn">' + esc(w) + '<\/div>'; });
+    plan.warnings.forEach(function (w, i) {
+      out += '<div class="' + (w.lvl === 'info' ? 'note' : 'warn') + '" role="note"><span style="flex:1;min-width:0">' + esc(w.t) + '<\/span><button class="qbtn" data-act="help" data-i="' + i + '" aria-label="Spiega questo avviso">?<\/button><\/div>';
+    });
+    out += expectHtml();
     out += '<div class="chips" role="group" aria-label="Settimane">' + plan.weeks.map(function (w) {
       var dn = weekDone(w.w) === plan.sessions.length;
       return '<button class="chip ' + (dn ? 'done' : '') + '" data-act="wk" data-v="' + w.w + '" aria-pressed="' + (w.w === wk.w) + '">S' + (w.w + 1) + (w.deload ? ' ↓' : '') + '<\/button>';
     }).join('') + '<\/div>';
     out += '<div class="row"><span class="tag tp">Settimana ' + (wk.w + 1) + '<\/span><span class="small mut">Blocco ' + (wk.block + 1) + ' · ' + wk.phase + (wk.deload ? ' · serie dimezzate' : '') + '<\/span><\/div>';
+    if (wk.provisional) out += '<p class="small mut">Esercizi provvisori: si aggiornano dopo il check di fine blocco ' + (S.checked + 1) + ', in base a quello che hai davvero raggiunto.<\/p>';
     wk.sessions.forEach(function (s) {
       var k = sessionKey(wk.w, s.d), dn = !!S.done[k];
       out += '<section class="card stack" aria-label="' + esc(s.dayName) + '"><div class="row" style="justify-content:space-between"><div><h2>' + s.dayName + '<\/h2><p class="small mut">' + esc(s.label) + ' · circa ' + s.estMin + ' min<\/p><\/div>' +
@@ -887,7 +968,38 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
       out += '<div><h3>Forza<\/h3>' + s.strength.map(function (e) { return exRow(e); }).join('') + '<\/div>' + condHtml(s.cond) +
         '<details><summary>Defaticamento · ' + s.cool.min + ' min<\/summary>' + listItems(s.cool.items) + '<\/details><\/section>';
     });
+    out += checkHtml(wk);
     return out + '<\/div>';
+  }
+
+
+  function expectHtml() {
+    if (!plan.expect || !plan.expect.length) return '';
+    var rows = plan.expect.map(function (e) {
+      var tail = e.skill ? (e.reachesGoal ? ' · obiettivo raggiungibile' : ' · obiettivo finale: ' + esc(e.goal) + ', oltre questo piano') : (e.capped ? ' · poi si sblocca altro' : '');
+      var mv = e.from === e.to ? 'resti su <b>' + esc(e.from) + '<\/b>' : '<b>' + esc(e.from) + '<\/b> → <b>' + esc(e.to) + '<\/b>';
+      return '<li><b>' + esc(e.label) + '<\/b>: ' + mv + '<span class="small mut">' + tail + '<\/span><\/li>';
+    }).join('');
+    return '<details class="card"><summary>Cosa aspettarti da questo piano<\/summary><p class="small mut" style="margin:8px 0">Stima prudente, non una promessa: un gradino per blocco di 4 settimane sulla forza, uno ogni 8 o 16 sulle skill. Conta quello che raggiungi davvero: lo confermi tu a fine blocco.<\/p><ul style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px">' + rows + '<\/ul><\/details>';
+  }
+  function checkHtml(wk) {
+    if (wk.wb !== 3) return '';
+    var seen = {}, list = [];
+    wk.sessions.forEach(function (s) { s.skills.concat(s.strength).forEach(function (e) { if (e.next && !seen[e.chain]) { seen[e.chain] = 1; list.push(e); } }); });
+    if (wk.block < S.checked) return '<div class="card"><p class="small mut">Check del blocco ' + (wk.block + 1) + ' già fatto.<\/p><\/div>';
+    if (wk.block > S.checked) return '<div class="card"><p class="small mut">Il check del blocco ' + (wk.block + 1) + ' si fa dopo quello del blocco ' + (S.checked + 1) + '.<\/p><\/div>';
+    if (!list.length) return '<div class="card stack"><h3>Check di fine blocco<\/h3><button class="btn" data-act="closeblock">Chiudi il blocco<\/button><\/div>';
+    return '<div class="card stack"><h3>Check di fine blocco ' + (wk.block + 1) + '<\/h3><p class="small mut">Spunta solo gli esercizi in cui hai davvero raggiunto il criterio, con tecnica pulita. Il piano avanza solo per quelli. Se non sei sicuro, lascia vuoto: ripetere un blocco è normale.<\/p>' +
+      list.map(function (e) {
+        return '<label class="opt ' + (S.chk[e.chain] ? 'on' : '') + '"><input type="checkbox" data-chk="' + e.chain + '" ' + (S.chk[e.chain] ? 'checked' : '') + '><span><b>' + esc(exName(e.exId)) + '<\/b><span class="small mut">Criterio: ' + esc(e.graduate) + ' Poi: ' + esc(e.next.name) + '<\/span><\/span><\/label>';
+      }).join('') + '<button class="btn tape" data-act="closeblock">Conferma e aggiorna il piano<\/button><\/div>';
+  }
+  function helpHtml() {
+    if (S.help == null || !plan || !plan.warnings[S.help]) return '';
+    var w = plan.warnings[S.help];
+    return '<div class="modal" data-act="helpclose"><div class="sheet" role="dialog" aria-modal="true" aria-label="Spiegazione"><div class="stack">' +
+      '<h2>Cosa significa<\/h2><p>' + esc(w.t) + '<\/p><h3>Perché succede<\/h3><p class="small">' + esc(w.why) + '<\/p><h3>Cosa puoi fare<\/h3><p class="small">' + esc(w.fix) + '<\/p>' +
+      '<button class="btn full" data-act="helpclose">Ho capito<\/button><\/div><\/div><\/div>';
   }
 
   /* ------------------------------------------------ circuito rapido */
@@ -938,7 +1050,7 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
   /* ------------------------------------------------ export */
   function planText() {
     var L = ['PIANO DI ALLENAMENTO' + (S.p.name ? ' - ' + S.p.name : ''), 'Obiettivo: ' + S.p.goal + ' | ' + plan.sessions.length + ' giorni | ' + S.p.minutes + ' min | ' + plan.weeks.length + ' settimane', plan.rir, ''];
-    plan.warnings.forEach(function (w) { L.push('ATTENZIONE: ' + w); });
+    plan.warnings.forEach(function (w) { L.push('NOTA: ' + w.t); });
     plan.weeks.forEach(function (wk) {
       L.push('', '=== SETTIMANA ' + (wk.w + 1) + ' (' + wk.phase + (wk.deload ? ', scarico' : '') + ') ===');
       wk.sessions.forEach(function (s) {
@@ -977,7 +1089,7 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
     else if (S.tab === 'circuito') body = S.step >= 5 ? circuitView() : '<div class="stack"><h1>Circuito rapido<\/h1><div class="warn">Completa prima il profilo nel tab Piano: servono livello, attrezzi e limitazioni per costruire un circuito adatto a te.<\/div><\/div>';
     else if (S.tab === 'libreria') body = libraryView();
     else body = infoView();
-    document.getElementById('app').innerHTML = '<div class="top"><span class="brand"><i><\/i>Palestra Libera<\/span><\/div>' + body;
+    document.getElementById('app').innerHTML = '<div class="top"><span class="brand"><i><\/i>Palestra Libera<\/span><\/div>' + body + (S.tab === 'piano' ? helpHtml() : '');
     document.getElementById('tabs').innerHTML = TABS.map(function (t) { return '<button role="tab" data-act="tab" data-v="' + t[0] + '" aria-selected="' + (S.tab === t[0]) + '">' + t[1] + '<\/button>'; }).join('');
     save();
   }
@@ -987,6 +1099,7 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
     var b = ev.target.closest('[data-act]');
     if (!b) return;
     var a = b.dataset.act, v = b.dataset.v, p = S.p;
+    if (a === 'helpclose' && b.classList.contains('modal') && ev.target !== b) return;
     var top = function () { window.scrollTo(0, 0); };
     go(function () {
       if (a === 'tab') { S.tab = v; top(); }
@@ -999,7 +1112,10 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
       else if (a === 'weeks') p.weeks = +v;
       else if (a === 'day') { var d = +v; toggle(p.days, d); p.days.sort(function (x, y) { return x - y; }); }
       else if (a === 'start') { p.starts[b.dataset.c] = p.starts[b.dataset.c] === v ? undefined : v; if (p.starts[b.dataset.c] === undefined) delete p.starts[b.dataset.c]; }
-      else if (a === 'gen') { S.step = 5; S.wk = 0; S.done = {}; rebuild(); top(); }
+      else if (a === 'gen') { S.step = 5; S.wk = 0; S.done = {}; S.adv = {}; S.checked = 0; S.chk = {}; rebuild(); top(); }
+      else if (a === 'help') { S.help = +b.dataset.i; }
+      else if (a === 'helpclose') { S.help = null; }
+      else if (a === 'closeblock') { Object.keys(S.chk).forEach(function (c) { if (S.chk[c]) S.adv[c] = (S.adv[c] || 0) + 1; }); S.chk = {}; S.checked += 1; rebuild(); toast('Piano aggiornato'); }
       else if (a === 'edit') { S.step = 1; top(); }
       else if (a === 'wk') { S.wk = +v; }
       else if (a === 'export') exportText('piano-allenamento.txt', planText());
@@ -1014,10 +1130,12 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
       else if (a === 'reset2') { S = JSON.parse(JSON.stringify(DEF)); plan = null; try { localStorage.removeItem(KEY); } catch (e) {} }
     });
   });
+  document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && S.help != null) { S.help = null; render(); } });
   document.addEventListener('change', function (ev) {
     var t = ev.target, p = S.p;
     if (t.dataset.bind) { p[t.dataset.bind] = t.type === 'checkbox' ? t.checked : t.value; if (t.type === 'checkbox') render(); else save(); }
     else if (t.dataset.tog) { toggle(p[t.dataset.tog], t.dataset.v); if (t.dataset.tog !== 'skills') p.starts = p.starts; render(); }
+    else if (t.dataset.chk) { S.chk[t.dataset.chk] = t.checked; render(); }
     else if (t.dataset.done) { S.done[t.dataset.done] = t.checked; render(); }
   });
 
