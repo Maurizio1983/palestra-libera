@@ -7,6 +7,7 @@
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1715;--card:#17211e;--fg:#e8efec;--mut:#9fb0a9;--line:#2b3a35;--acc:#5fc4a2;--acc-fg:#0a1713;--acc-soft:#1d332c;--tape:#f2c230;--tape-fg:#2a2100;--warn:#f0a57a;--warn-bg:#36211a;--ok:#7fd49b;--dis:#202c28;--shadow:none;color-scheme:dark}}
 :root[data-theme="dark"]{--bg:#0f1715;--card:#17211e;--fg:#e8efec;--mut:#9fb0a9;--line:#2b3a35;--acc:#5fc4a2;--acc-fg:#0a1713;--acc-soft:#1d332c;--tape:#f2c230;--tape-fg:#2a2100;--warn:#f0a57a;--warn-bg:#36211a;--ok:#7fd49b;--dis:#202c28;--shadow:none;color-scheme:dark}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 body{background:var(--bg);color:var(--fg);font:16px/1.5 Barlow,system-ui,sans-serif;padding-block:0 96px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 #app{max-width:640px;margin:0 auto}
 h1,h2,h3{font-family:'Barlow Condensed',Impact,sans-serif;text-transform:uppercase;letter-spacing:.03em;line-height:1.1;margin:0;text-wrap:balance}
@@ -50,6 +51,12 @@ input[type=text],input[type=number],select{background:var(--bg);border:1.5px sol
 .tmin{max-width:640px;margin:0 auto;padding:18px max(16px,env(safe-area-inset-left,0px))}
 .tmtime{font:700 6rem/1 'Barlow Condensed',sans-serif;text-align:center;font-variant-numeric:tabular-nums}
 .tmcount{font:700 4rem/1 'Barlow Condensed',sans-serif;text-align:center}
+.rmap{display:block;width:100%;height:38vh;min-height:220px;background:var(--dis)}
+.rcv{display:block;width:100%;height:140px;background:var(--bg);border-radius:8px}
+.rgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.rcell{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px;display:flex;flex-direction:column;align-items:center;gap:2px}
+.rcell b{font:700 1.7rem 'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums}
+nav.tabs button{font-size:.72rem}
 .qbtn{flex:none;width:36px;height:36px;border-radius:50%;border:1.5px solid currentColor;background:transparent;color:inherit;font:700 1rem Barlow,sans-serif;cursor:pointer}
 .modal{position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center}
 .sheet{background:var(--card);color:var(--fg);width:100%;max-width:640px;border-radius:14px 14px 0 0;padding:20px max(20px,env(safe-area-inset-left,0px)) calc(20px + env(safe-area-inset-bottom,0px));max-height:85vh;overflow:auto}
@@ -883,8 +890,77 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
     return out;
   }
 
+  /* ---------------------------------------------------------- corsa: calcoli puri (GPS, ritmo, calorie, chilometri) */
+  const RUN = (function () {
+    const R = 6371000;
+    function hav(a, b) {
+      const r = Math.PI / 180, dLat = (b.lat - a.lat) * r, dLon = (b.lon - a.lon) * r;
+      const x = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      return 2 * R * Math.asin(Math.min(1, Math.sqrt(x)));
+    }
+    function newRun(kg) {
+      return { kg: kg > 20 && kg < 300 ? kg : 70, pts: [], dist: 0, ms: 0, kcalDist: 0, kmDone: 0, lastKmMs: 0, splits: [], last: null, lastT: null, gap: false, paused: false, win: [], tStart: null, rejected: 0, acc: null };
+    }
+    // restituisce { ok, ev:[{km, splitMs}], why }
+    function addPoint(r, p) {
+      const out = { ok: false, ev: [], why: '' };
+      if (r.paused) { out.why = 'pausa'; return out; }
+      if (p.acc != null) r.acc = p.acc;
+      if (p.acc != null && p.acc > 25) { r.rejected++; out.why = 'precisione'; return out; }
+      r.buf = r.buf || [];
+      if (r.gap || !r.last) r.buf = [];
+      r.buf.push(p); if (r.buf.length > 4) r.buf.shift();
+      if (r.buf.length > 1) {
+        let la = 0, lo = 0; r.buf.forEach(function (q) { la += q.lat; lo += q.lon; });
+        p = { lat: la / r.buf.length, lon: lo / r.buf.length, acc: p.acc, t: p.t };
+      }
+      if (!r.last || r.gap) {
+        r.last = p; r.lastT = p.t; r.gap = false;
+        if (r.tStart == null) r.tStart = p.t;
+        r.pts.push([p.lat, p.lon]); r.win = [{ t: p.t, d: r.dist }];
+        out.ok = true; return out;
+      }
+      const dtAll = p.t - r.lastT;
+      if (dtAll <= 0) { out.why = 'tempo'; return out; }
+      const d = hav(r.last, p), dtSeg = p.t - r.last.t;
+      if (d / (dtSeg / 1000) > 12) { r.rejected++; out.why = 'salto'; return out; }
+      if (d < Math.max(6, 0.75 * (p.acc != null ? p.acc : 10))) { r.ms += dtAll; r.lastT = p.t; out.why = 'fermo'; return out; }
+      const v = d / (dtSeg / 1000), k = v >= 1.94 ? 1.0 : 0.5;
+      const msPrev = r.ms;
+      r.ms += dtAll;
+      while (r.dist + d >= (r.kmDone + 1) * 1000) {
+        const frac = ((r.kmDone + 1) * 1000 - r.dist) / d, msCross = msPrev + frac * dtAll;
+        out.ev.push({ km: r.kmDone + 1, splitMs: msCross - r.lastKmMs });
+        r.splits.push(msCross - r.lastKmMs); r.lastKmMs = msCross; r.kmDone++;
+      }
+      r.dist += d; r.kcalDist += k * d / 1000;
+      r.last = p; r.lastT = p.t; r.pts.push([p.lat, p.lon]);
+      r.win.push({ t: p.t, d: r.dist });
+      while (r.win.length > 2 && p.t - r.win[0].t > 15000) r.win.shift();
+      out.ok = true; return out;
+    }
+    function pause(r) { r.paused = true; }
+    function resume(r) { r.paused = false; r.gap = true; }
+    function stats(r) {
+      const w = r.win, n = w.length;
+      let inst = 0;
+      if (n >= 2 && w[n - 1].t > w[0].t) inst = (w[n - 1].d - w[0].d) / ((w[n - 1].t - w[0].t) / 1000);
+      const avg = r.ms > 0 ? r.dist / (r.ms / 1000) : 0;
+      return { distM: r.dist, ms: r.ms, instMs: inst, avgMs: avg, kcal: r.kg * (r.kcalDist + 1.05 * r.ms / 3.6e6), kcalNet: r.kg * r.kcalDist, km: r.kmDone };
+    }
+    function pace(ms) { if (!(ms >= 0.8)) return '—'; const s = Math.round(1000 / ms); return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
+    function clock(ms) { const s = Math.floor(ms / 1000), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60); return (h ? h + ':' + ('0' + m).slice(-2) : m) + ':' + ('0' + (s % 60)).slice(-2); }
+    function down(pts, max) { if (pts.length <= max) return pts.slice(); const o = [], st = (pts.length - 1) / (max - 1); for (let i = 0; i < max; i++) o.push(pts[Math.round(i * st)]); return o; }
+    function gpx(run) {
+      const d0 = new Date(run.t0);
+      return '<?xml version="1.0" encoding="UTF-8"?><gpx version="1.1" creator="Palestra Libera" xmlns="http://www.topografix.com/GPX/1/1"><trk><name>Corsa ' + d0.toISOString().slice(0, 10) + '<\/name><trkseg>' +
+        run.pts.map(function (p) { return '<trkpt lat="' + p[0].toFixed(6) + '" lon="' + p[1].toFixed(6) + '"/>'; }).join('') + '<\/trkseg><\/trk><\/gpx>';
+    }
+    return { hav: hav, newRun: newRun, addPoint: addPoint, pause: pause, resume: resume, stats: stats, pace: pace, clock: clock, down: down, gpx: gpx };
+  })();
+
   const api = {
-    init: init, buildPlan: buildPlan, ladder: ladder, quickCircuit: quickCircuit, circuitAdvice: circuitAdvice, circuitTimeline: circuitTimeline, circuitFit: circuitFit,
+    init: init, buildPlan: buildPlan, ladder: ladder, quickCircuit: quickCircuit, circuitAdvice: circuitAdvice, circuitTimeline: circuitTimeline, circuitFit: circuitFit, run: RUN,
     avail: avail, blockReason: blockReason, scheduleSkills: scheduleSkills, adjacent: adjacent,
     DAYS: DAYS, DAYS_SHORT: DAYS_SHORT, TENDON_SKILLS: TENDON_SKILLS,
     byId: function (id) { return BY[id]; }, chain: function (c) { return CH[c]; },
@@ -912,7 +988,7 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
     ['skill', 'Skill avanzate', 'Verticale, front lever, muscle-up, planche con base di forza.'],
   ];
   var DEF = {
-    step: 0, tab: 'piano', wk: 0, done: {}, adv: {}, checked: 0, notif: false, seen: [], newKeys: [], chk: {}, circ: null, circOpt: { area: 'full', goal: 'resistenza', minutes: 10, n: null }, best: {}, circLog: [], circCtx: { sit: null, replace: null, weekday: null, week: null },
+    step: 0, tab: 'piano', wk: 0, done: {}, adv: {}, checked: 0, notif: false, seen: [], newKeys: [], chk: {}, circ: null, circOpt: { area: 'full', goal: 'resistenza', minutes: 10, n: null }, best: {}, runs: [], runCfg: { voice: true, beep: true }, confirmDel: null, circLog: [], circCtx: { sit: null, replace: null, weekday: null, week: null },
     ladderChain: 'push_h', confirmReset: false,
     p: { name: '', age: '', height: '', weight: '', exp: 'ripartenza', eq: [], limits: [], screen: [], confirmed: false,
          goal: 'salute', minutes: 30, days: [0, 2, 4], weeks: 8, skills: [], starts: {} },
@@ -923,7 +999,7 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
   function load() {
     try {
       var r = JSON.parse(localStorage.getItem(KEY));
-      if (r && r.p) { r.p = Object.assign({}, DEF.p, r.p); r = Object.assign({}, DEF, r); r.notif = false; r.newKeys = []; r.chk = {}; if (r.circ && !r.circ.format) r.circ = null; r.circOpt = Object.assign({}, DEF.circOpt, r.circOpt); r.best = r.best || {}; r.circLog = r.circLog || []; r.circCtx = Object.assign({}, DEF.circCtx, r.circCtx); return r; }
+      if (r && r.p) { r.p = Object.assign({}, DEF.p, r.p); r = Object.assign({}, DEF, r); r.notif = false; r.newKeys = []; r.chk = {}; if (r.circ && !r.circ.format) r.circ = null; r.circOpt = Object.assign({}, DEF.circOpt, r.circOpt); r.best = r.best || {}; r.circLog = r.circLog || []; r.runs = r.runs || []; r.runCfg = Object.assign({ voice: true, beep: true }, r.runCfg); r.confirmDel = null; r.circCtx = Object.assign({}, DEF.circCtx, r.circCtx); return r; }
     } catch (e) {}
     return JSON.parse(JSON.stringify(DEF));
   }
@@ -1305,6 +1381,142 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
     else if (a === 'close') tClose();
   });
 
+
+  /* ------------------------------------------------ corsa */
+  var RN = null, LEAF = null;
+  function inArtifact() { return typeof claude !== 'undefined'; }
+  function loadLeaflet() {
+    if (LEAF) return LEAF;
+    LEAF = new Promise(function (res) {
+      if (window.L) { res(window.L); return; }
+      var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'; document.head.appendChild(l);
+      var sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+      sc.onload = function () { if (!window.L) LEAF = null; res(window.L || null); }; sc.onerror = function () { LEAF = null; res(null); }; document.head.appendChild(sc);
+    });
+    return LEAF;
+  }
+  function drawTrack(cv, pts, live) {
+    var ctx = cv.getContext('2d'), w = cv.width = cv.clientWidth * 2, h = cv.height = cv.clientHeight * 2;
+    ctx.clearRect(0, 0, w, h);
+    var cs = getComputedStyle(document.documentElement), col = cs.getPropertyValue('--acc').trim() || '#1f5c4a', tp = cs.getPropertyValue('--tape').trim() || '#f2c230';
+    if (!pts || pts.length < 2) return;
+    var la = pts.map(function (p) { return p[0]; }), lo = pts.map(function (p) { return p[1]; });
+    var minLa = Math.min.apply(0, la), maxLa = Math.max.apply(0, la), minLo = Math.min.apply(0, lo), maxLo = Math.max.apply(0, lo);
+    var k = Math.cos((minLa + maxLa) / 2 * Math.PI / 180), dx = Math.max((maxLo - minLo) * k, 1e-6), dy = Math.max(maxLa - minLa, 1e-6), pad = 16;
+    var sc = Math.min((w - 2 * pad) / dx, (h - 2 * pad) / dy), ox = (w - dx * sc) / 2, oy = (h - dy * sc) / 2;
+    function X(p) { return ox + (p[1] - minLo) * k * sc; } function Y(p) { return h - oy - (p[0] - minLa) * sc; }
+    ctx.lineWidth = 5; ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.strokeStyle = col; ctx.beginPath();
+    pts.forEach(function (p, i) { if (i) ctx.lineTo(X(p), Y(p)); else ctx.moveTo(X(p), Y(p)); }); ctx.stroke();
+    ctx.fillStyle = tp; ctx.beginPath(); ctx.arc(X(pts[pts.length - 1]), Y(pts[pts.length - 1]), 9, 0, 7); ctx.fill();
+  }
+  function drawThumbs() {
+    var cs = document.querySelectorAll('canvas[data-run]');
+    for (var i = 0; i < cs.length; i++) { var id = +cs[i].dataset.run; var r = S.runs.filter(function (x) { return x.id === id; })[0]; if (r) drawTrack(cs[i], r.pts); }
+  }
+  function runView() {
+    var kg = +S.p.weight, ok = kg > 20 && kg < 300, wk = Date.now() - 7 * 864e5;
+    var rec = S.runs.filter(function (r) { return r.t0 > wk; }), km = 0, kc = 0; rec.forEach(function (r) { km += r.dist / 1000; kc += r.kcal; });
+    var out = '<div class="stack"><h1>Corsa<\/h1>';
+    if (inArtifact()) out += '<div class="warn" style="display:block">La corsa con GPS e mappa funziona solo nell\'app installata dal tuo indirizzo GitHub, non dentro Claude: qui il GPS e le mappe sono bloccati.<\/div>';
+    out += '<div class="card stack"><label class="f">Il tuo peso (kg), per stimare le calorie<input type="number" inputmode="decimal" min="30" max="250" data-bind="weight" value="' + esc(S.p.weight) + '"><\/label>' +
+      '<label class="opt ' + (S.runCfg.voice ? 'on' : '') + '"><input type="checkbox" data-cfg="voice" ' + (S.runCfg.voice ? 'checked' : '') + '><span>Voce a ogni chilometro<span class="small mut">Dice chilometro, tempo e calorie.<\/span><\/span><\/label>' +
+      '<label class="opt ' + (S.runCfg.beep ? 'on' : '') + '"><input type="checkbox" data-cfg="beep" ' + (S.runCfg.beep ? 'checked' : '') + '><span>Segnale acustico e vibrazione<span class="small mut">Tre beep a ogni chilometro. La vibrazione non esiste su iPhone.<\/span><\/span><\/label>' +
+      '<button class="btn tape full" data-act="rstart" ' + (ok && !inArtifact() ? '' : 'disabled') + '>▶ Inizia la corsa<\/button>' + (ok ? '' : '<p class="small mut">Inserisci il peso per iniziare.<\/p>') +
+      '<details><summary>Cosa devi sapere<\/summary><ul class="small" style="margin:6px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:6px">' +
+      '<li><b>Tieni l\'app aperta e lo schermo acceso.<\/b> Se blocchi lo schermo o cambi app, il telefono può fermare il GPS e il tracciato si interrompe. L\'app chiede di tenere lo schermo acceso e questo consuma batteria.<\/li>' +
+      '<li><b>La mappa richiede connessione.<\/b> Senza rete il percorso viene comunque registrato e disegnato, ma senza la mappa sotto.<\/li>' +
+      '<li><b>Il GPS sbaglia di qualche percento<\/b>, di più tra palazzi alti e alberi. Filtro i punti imprecisi, ma la distanza resta una stima.<\/li>' +
+      '<li><b>Le calorie sono una stima<\/b> con la formula ACSM per la corsa su terreno piano: circa 1 kcal per kg per km (0,5 camminando) più il metabolismo mentre ti muovi. Non considera pendenze, vento o caratteristiche personali: errore tipico 15-20%. Chilometri e velocità sono misurati, il peso lo scrivi tu.<\/li>' +
+      '<li><b>I segnali funzionano solo con l\'app in primo piano.<\/b><\/li><\/ul><\/details><\/div>';
+    out += '<div class="card"><h3>Ultimi 7 giorni<\/h3><p>' + rec.length + (rec.length === 1 ? ' corsa' : ' corse') + ' · ' + km.toFixed(1) + ' km · ' + Math.round(kc) + ' kcal<\/p><\/div>';
+    if (S.runs.length) {
+      out += '<h3>Le tue corse<\/h3>' + S.runs.slice(0, 20).map(function (r) {
+        var d = new Date(r.t0), ds = E.DAYS[(d.getDay() + 6) % 7] + ' ' + d.getDate() + '/' + (d.getMonth() + 1);
+        return '<div class="card stack"><div class="row" style="justify-content:space-between"><b>' + ds + '<\/b><span class="rx">' + (r.dist / 1000).toFixed(2) + ' km<\/span><\/div>' +
+          '<canvas data-run="' + r.id + '" class="rcv"><\/canvas>' +
+          '<p class="small mut">' + E.run.clock(r.ms) + ' · ritmo medio ' + E.run.pace(r.avgMs) + ' /km · ' + Math.round(r.kcal) + ' kcal (' + r.kg + ' kg)<\/p>' +
+          (r.splits.length ? '<details><summary>Chilometri<\/summary><p class="small">' + r.splits.map(function (m, i) { return (i + 1) + ' km: ' + E.run.clock(m); }).join(' · ') + '<\/p><\/details>' : '') +
+          '<div class="row"><button class="btn sec" data-act="rgpx" data-v="' + r.id + '">Esporta GPX<\/button>' +
+          (S.confirmDel === r.id ? '<button class="btn" data-act="rdel2" data-v="' + r.id + '">Sì, elimina<\/button><button class="btn sec" data-act="rdel0">Annulla<\/button>' : '<button class="btn sec" data-act="rdel1" data-v="' + r.id + '">Elimina<\/button>') + '<\/div><\/div>';
+      }).join('');
+    }
+    return out + '<\/div>';
+  }
+  function runStart() {
+    if (!navigator.geolocation) { toast('Questo browser non ha il GPS'); return; }
+    beep(660, 0.1);
+    var el = document.createElement('div'); el.id = 'rn'; el.className = 'tm'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', 'Corsa in corso');
+    el.innerHTML = '<div class="tmband work" id="rn-band"><span id="rn-state">Corsa<\/span><span id="rn-gps">GPS: in cerca del segnale…<\/span><\/div><div id="rmap" class="rmap"><\/div><canvas id="rcv" class="rmap" hidden><\/canvas>' +
+      '<div class="tmin stack"><div class="rgrid">' + [['rn-t', 'Tempo'], ['rn-d', 'Km'], ['rn-p', 'Ritmo ora'], ['rn-a', 'Ritmo medio'], ['rn-k', 'Calorie'], ['rn-l', 'Ultimo km']].map(function (x) { return '<div class="rcell"><span class="small mut">' + x[1] + '<\/span><b id="' + x[0] + '">—<\/b><\/div>'; }).join('') + '<\/div>' +
+      '<div class="row" style="justify-content:center" id="rn-btns"><\/div><p class="small mut" id="rn-msg" style="text-align:center">Tieni lo schermo acceso.<\/p><\/div>';
+    document.body.appendChild(el);
+    RN = { r: E.run.newRun(+S.p.weight), paused: false, wall: 0, exit: false, done: false, map: null, line: null, dot: null, ll: [], L: null, watch: null, tick: null, wake: null, lastSplit: 0 };
+    runButtons();
+    loadLeaflet().then(function (L) { if (RN) RN.L = L; });
+    requestWake();
+    RN.watch = navigator.geolocation.watchPosition(onPos, onErr, { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 });
+    RN.tick = setInterval(runTick, 1000);
+  }
+  function requestWake() { try { if (navigator.wakeLock && RN && !RN.done) navigator.wakeLock.request('screen').then(function (w) { RN.wake = w; }, function () {}); } catch (e) {} }
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && RN && !RN.done) requestWake(); });
+  function onErr(e) {
+    if (e.code === 1) { var g = document.getElementById('rn-msg'); if (g) g.textContent = 'Permesso GPS negato. Abilitalo nelle impostazioni del telefono per questo sito e riprova.'; return; }
+    var s = document.getElementById('rn-gps'); if (s) s.textContent = 'GPS: segnale perso, continuo a cercarlo…';
+  }
+  function onPos(pos) {
+    if (!RN || RN.done) return;
+    var c = pos.coords, o = E.run.addPoint(RN.r, { lat: c.latitude, lon: c.longitude, acc: c.accuracy, t: pos.timestamp });
+    if (o.ok || o.why === 'fermo') RN.wall = Date.now();
+    var g = document.getElementById('rn-gps'); if (g) g.textContent = 'GPS: ' + (c.accuracy <= 10 ? 'ottimo' : c.accuracy <= 25 ? 'buono' : 'debole') + ' (±' + Math.round(c.accuracy) + ' m)';
+    if (o.ok) { var p = RN.r.last; RN.ll.push([p.lat, p.lon]); mapUpdate(p); }
+    o.ev.forEach(function (e) { RN.lastSplit = e.splitMs; kmSignal(e); });
+    runTick();
+  }
+  function mapUpdate(p) {
+    var mapEl = document.getElementById('rmap'), cv = document.getElementById('rcv'); if (!mapEl) return;
+    if (RN.L && !RN.map) {
+      var L = RN.L; RN.map = L.map('rmap', { zoomControl: false, attributionControl: true }).setView([p.lat, p.lon], 17);
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(RN.map);
+      RN.line = L.polyline(RN.ll, { color: '#1f5c4a', weight: 6 }).addTo(RN.map); RN.dot = L.circleMarker([p.lat, p.lon], { radius: 8, color: '#2a2100', weight: 2, fillColor: '#f2c230', fillOpacity: 1 }).addTo(RN.map);
+    } else if (RN.map) { RN.line.setLatLngs(RN.ll); RN.dot.setLatLng([p.lat, p.lon]); RN.map.panTo([p.lat, p.lon], { animate: false }); }
+    else if (cv && !RN.L && LEAF === null) { mapEl.hidden = true; cv.hidden = false; drawTrack(cv, RN.ll, true); }
+  }
+  function kmSignal(e) {
+    var st = E.run.stats(RN.r), m = Math.floor(e.splitMs / 60000), s = Math.round(e.splitMs % 60000 / 1000);
+    if (S.runCfg.beep) { beep(880, 0.15); setTimeout(function () { beep(880, 0.15); }, 250); setTimeout(function () { beep(1175, 0.3); }, 500); buzz([200, 100, 200, 100, 300]); }
+    if (S.runCfg.voice) { try { var u = new SpeechSynthesisUtterance('Chilometro ' + e.km + '. Ultimo chilometro in ' + m + ' minuti e ' + s + ' secondi. Calorie circa ' + Math.round(st.kcal) + '.'); u.lang = 'it-IT'; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (x) {} }
+    var g = document.getElementById('rn-msg'); if (g) g.textContent = 'Chilometro ' + e.km + ': ' + E.run.clock(e.splitMs);
+  }
+  function runTick() {
+    if (!RN) return; var st = E.run.stats(RN.r), ms = st.ms + (RN.paused || !RN.wall ? 0 : Date.now() - RN.wall);
+    var set = function (id, v) { var e = document.getElementById(id); if (e) e.textContent = v; };
+    set('rn-t', E.run.clock(ms)); set('rn-d', (st.distM / 1000).toFixed(2)); set('rn-p', E.run.pace(st.instMs)); set('rn-a', E.run.pace(st.avgMs)); set('rn-k', Math.round(st.kcal)); set('rn-l', RN.lastSplit ? E.run.clock(RN.lastSplit) : '—');
+  }
+  function runButtons() {
+    var b = document.getElementById('rn-btns'); if (!b || !RN) return;
+    b.innerHTML = RN.done ? '' : '<button class="btn" data-r="pp" style="min-width:130px">' + (RN.paused ? '▶ Riprendi' : '❚❚ Pausa') + '<\/button>' + (RN.exit ? '<button class="btn tape" data-r="end">Sì, termina<\/button><button class="btn sec" data-r="stay">Continua<\/button>' : '<button class="btn sec" data-r="exit">Fine<\/button>');
+    var s = document.getElementById('rn-state'); if (s) s.textContent = RN.paused ? 'In pausa' : 'Corsa';
+  }
+  function runStop() {
+    var r = RN.r; RN.done = true; clearInterval(RN.tick); try { navigator.geolocation.clearWatch(RN.watch); } catch (e) {}
+    try { if (RN.wake) RN.wake.release(); } catch (e) {}
+    var st = E.run.stats(r), el = document.getElementById('rn');
+    if (st.distM < 100) { toast('Corsa troppo breve: non salvata'); if (el) el.remove(); RN = null; render(); return; }
+    var rec = { id: Date.now(), t0: r.tStart || Date.now(), dist: st.distM, ms: st.ms, kcal: st.kcal, kcalNet: st.kcalNet, avgMs: st.avgMs, splits: r.splits.slice(), pts: E.run.down(r.pts, 250), kg: r.kg };
+    S.runs.unshift(rec); S.runs = S.runs.slice(0, 60); save();
+    el.innerHTML = '<div class="tmband work"><span>Corsa conclusa<\/span><\/div><div class="tmin stack"><h1>' + (rec.dist / 1000).toFixed(2) + ' km<\/h1><canvas class="rcv" id="rsum"><\/canvas><p>Tempo ' + E.run.clock(rec.ms) + ' · ritmo medio ' + E.run.pace(rec.avgMs) + ' /km<\/p><p><b>' + Math.round(rec.kcal) + ' kcal<\/b> <span class="small mut">stima totale; solo per la corsa circa ' + Math.round(rec.kcalNet) + '<\/span><\/p>' +
+      (rec.splits.length ? '<p class="small">' + rec.splits.map(function (m, i) { return (i + 1) + ' km: ' + E.run.clock(m); }).join(' · ') + '<\/p>' : '') + '<button class="btn full" data-r="close">Chiudi<\/button><\/div>';
+    drawTrack(document.getElementById('rsum'), rec.pts);
+  }
+  document.addEventListener('click', function (ev) {
+    var b = ev.target.closest('[data-r]'); if (!b || !RN) return; var a = b.dataset.r;
+    if (a === 'pp') { RN.paused = !RN.paused; if (RN.paused) E.run.pause(RN.r); else { E.run.resume(RN.r); RN.wall = 0; } runButtons(); }
+    else if (a === 'exit') { RN.exit = true; runButtons(); }
+    else if (a === 'stay') { RN.exit = false; runButtons(); }
+    else if (a === 'end') { runStop(); }
+    else if (a === 'close') { var el = document.getElementById('rn'); if (el) el.remove(); RN = null; render(); }
+  });
+
   /* ------------------------------------------------ libreria */
   function libraryView() {
     var chains = Object.keys(LIB.chains), cid = S.ladderChain;
@@ -1366,16 +1578,18 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
   }
 
   /* ------------------------------------------------ render */
-  var TABS = [['piano', 'Piano'], ['circuito', 'Circuito'], ['libreria', 'Scale'], ['info', 'Info']];
+  var TABS = [['piano', 'Piano'], ['circuito', 'Circuito'], ['corsa', 'Corsa'], ['libreria', 'Scale'], ['info', 'Info']];
   function render() {
     var body;
     if (S.tab === 'piano') body = S.step >= 5 ? planView() : wizard();
     else if (S.tab === 'circuito') body = S.step >= 5 ? circuitView() : '<div class="stack"><h1>Circuito rapido<\/h1><div class="warn">Completa prima il profilo nel tab Piano: servono livello, attrezzi e limitazioni per costruire un circuito adatto a te.<\/div><\/div>';
+    else if (S.tab === 'corsa') body = runView();
     else if (S.tab === 'libreria') body = libraryView();
     else body = infoView();
     document.getElementById('app').innerHTML = '<div class="top"><span class="brand"><i><\/i>Palestra Libera<\/span>' + bellHtml() + '<\/div>' + body + notifHtml();
     document.getElementById('tabs').innerHTML = TABS.map(function (t) { return '<button role="tab" data-act="tab" data-v="' + t[0] + '" aria-selected="' + (S.tab === t[0]) + '">' + t[1] + '<\/button>'; }).join('');
     save();
+    if (S.tab === 'corsa') drawThumbs();
   }
   function go(fn) { fn(); render(); }
 
@@ -1409,6 +1623,11 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
       else if (a === 'cmin') { S.circOpt.minutes = +v; S.circOpt.n = null; }
       else if (a === 'cn') S.circOpt.n = +v;
       else if (a === 'tstart') { timerStart(); }
+      else if (a === 'rstart') { runStart(); }
+      else if (a === 'rgpx') { var rr = S.runs.filter(function (x) { return x.id === +v; })[0]; if (rr) exportText('corsa-' + new Date(rr.t0).toISOString().slice(0, 10) + '.gpx', E.run.gpx(rr)); }
+      else if (a === 'rdel1') { S.confirmDel = +v; }
+      else if (a === 'rdel0') { S.confirmDel = null; }
+      else if (a === 'rdel2') { S.runs = S.runs.filter(function (x) { return x.id !== +v; }); S.confirmDel = null; }
       else if (a === 'csit') { S.circCtx.sit = v; }
       else if (a === 'crepl') { S.circCtx.replace = +v; }
       else if (a === 'ctoday') { S.circCtx.weekday = null; S.circCtx.week = null; }
@@ -1425,8 +1644,9 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
   document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && S.notif) { S.notif = false; render(); } });
   document.addEventListener('change', function (ev) {
     var t = ev.target, p = S.p;
-    if (t.dataset.bind) { p[t.dataset.bind] = t.type === 'checkbox' ? t.checked : t.value; if (t.type === 'checkbox') render(); else save(); }
+    if (t.dataset.bind) { p[t.dataset.bind] = t.type === 'checkbox' ? t.checked : t.value; if (t.type === 'checkbox' || t.dataset.bind === 'weight') render(); else save(); }
     else if (t.dataset.tog) { toggle(p[t.dataset.tog], t.dataset.v); if (t.dataset.tog !== 'skills') p.starts = p.starts; render(); }
+    else if (t.dataset.cfg) { S.runCfg[t.dataset.cfg] = t.checked; render(); }
     else if (t.dataset.chk) { S.chk[t.dataset.chk] = t.checked; render(); }
     else if (t.dataset.done) { S.done[t.dataset.done] = t.checked; render(); }
   });
