@@ -820,8 +820,71 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
     return ph;
   }
 
+  /* ---------------------------------------------------------- come inserire un circuito nel piano */
+  function sessLoad(s) {
+    if (!s) return { up: false, low: false, tendon: false };
+    const k = s.kind;
+    return { up: /UPPER|FULL/.test(k), low: /LOWER|FULL/.test(k) && k !== 'FULL_LIGHT' || k === 'FULL_LIGHT',
+             tendon: s.skills.some(function (x) { return TENDON_SKILLS.indexOf(x.chain) >= 0; }) };
+  }
+  function circuitFit(plan, ctx, opts) {
+    const p = plan.profile, gentle = isGentle(p);
+    const wk = plan.weeks[Math.max(0, Math.min(ctx.week || 0, plan.weeks.length - 1))];
+    const byDay = {};
+    wk.sessions.forEach(function (s) { byDay[s.weekday] = s; });
+    const limit = gentle ? 1 : 2, recent = ctx.recent || 0;
+    const out = { situation: ctx.sit, status: 'ok', headline: '', why: '', rec: null, maxMin: 10, cautions: [], limit: limit };
+    const sit = ctx.sit;
+    const today = byDay[ctx.weekday];
+    if (sit === 'dopo') {
+      out.maxMin = gentle ? 8 : 10;
+      if (!today) { out.status = 'no'; out.headline = 'Oggi nel piano non hai nessuna seduta.'; out.why = 'Un circuito "dopo la seduta" ha senso solo se oggi ti alleni col piano. Se oggi è libero, scegli "Giorno libero".'; }
+      else if (wk.deload) { out.status = 'no'; out.headline = 'Questa è la settimana di scarico: non aggiungere nulla.'; out.why = 'Lo scarico serve a recuperare e a consolidare il blocco. Un circuito extra toglie proprio quel recupero.'; }
+      else if (today.kind === 'COND_CORE') { out.status = 'no'; out.headline = 'La seduta di oggi è già di condizionamento.'; out.why = 'Aggiungerne un altro vuol dire duplicare lo stesso lavoro senza un motivo.'; }
+      else if (recent >= limit) { out.status = 'no'; out.headline = 'Hai già fatto ' + recent + (recent === 1 ? ' circuito' : ' circuiti') + ' extra negli ultimi 7 giorni.'; out.why = 'Per il tuo livello il massimo consigliato è ' + limit + ' a settimana: oltre, il rischio è accumulare fatica senza progredire.'; }
+      else {
+        const L = sessLoad(today), area = today.kind.indexOf('UPPER') === 0 ? 'lower' : today.kind.indexOf('LOWER') === 0 ? 'core' : 'core';
+        out.rec = { area: area, goal: gentle ? 'cardio' : 'resistenza', minutes: gentle ? 8 : 10 };
+        out.headline = 'Dopo la seduta di oggi (' + today.label + '): circuito corto, zona diversa.';
+        out.why = 'Aggiunto in fondo alla seduta, un circuito di ' + out.rec.minutes + ' minuti lavora su muscoli che non hai già stancato' + (L.tendon ? ' e non tocca spalle e tendini, già carichi per le skill di oggi' : '') + '. Meglio brevi: dopo una seduta completa la tecnica cala presto.';
+      }
+    } else if (sit === 'libero') {
+      out.maxMin = (gentle || wk.deload) ? 10 : 15;
+      const wd = ctx.weekday, prev = byDay[(wd + 6) % 7], next = byDay[(wd + 1) % 7];
+      if (today) { out.status = 'no'; out.headline = 'Oggi hai una seduta del piano.'; out.why = 'Per oggi scegli "Dopo la seduta" oppure "Al posto di una seduta". Un giorno libero è un giorno senza seduta.'; }
+      else if (recent >= limit) { out.status = 'no'; out.headline = 'Hai già fatto ' + recent + (recent === 1 ? ' circuito' : ' circuiti') + ' extra negli ultimi 7 giorni.'; out.why = 'Per il tuo livello il massimo consigliato è ' + limit + ' a settimana.'; }
+      else {
+        const a = sessLoad(prev), b = sessLoad(next);
+        const upLoaded = a.up || b.up, lowLoaded = a.low || b.low, tendon = a.tendon || b.tendon;
+        let area = null;
+        if (!lowLoaded) area = 'lower'; else if (!upLoaded && !tendon) area = 'upper'; else if (!tendon) area = 'core';
+        if (!area) { out.status = 'rest'; out.headline = 'Oggi è meglio riposare.'; out.why = 'Il giorno prima o dopo il piano ti allena già le stesse zone' + (tendon ? ' e carica i tendini con le skill' : '') + '. Il riposo è una parte dell\'allenamento: puoi fare una camminata di 20-30 minuti. Se vuoi un circuito, scegli un altro giorno libero.'; }
+        else { out.rec = { area: area, goal: gentle ? 'cardio' : 'resistenza', minutes: out.maxMin }; out.headline = 'Giorno libero: circuito moderato su una zona riposata.'; out.why = 'La zona consigliata non è stata allenata ieri né lo sarà domani' + (tendon ? ', e non coinvolge le skill che caricano i tendini' : '') + '. Intensità moderata: devi riuscire a parlare.'; }
+      }
+    } else if (sit === 'sostituisce') {
+      const s = byDay[ctx.replace];
+      out.maxMin = 20;
+      if (!s) { out.status = 'no'; out.headline = 'Scegli quale seduta del piano vuoi sostituire.'; out.why = ''; }
+      else {
+        const area = s.kind.indexOf('UPPER') === 0 ? 'upper' : s.kind.indexOf('LOWER') === 0 ? 'lower' : s.kind === 'COND_CORE' ? 'core' : 'full';
+        const mins = [8, 10, 15, 20].filter(function (m) { return m <= Math.max(10, s.estMin * 0.7); }).pop();
+        const strengthGoal = (p.goal === 'forza' || p.goal === 'massa' || p.goal === 'skill');
+        out.rec = { area: area, goal: strengthGoal ? 'forza' : 'resistenza', minutes: mins };
+        out.headline = 'Al posto di "' + s.label + '": circuito sulla stessa zona.';
+        out.why = 'Un circuito è una versione ridotta della seduta, non la sostituisce del tutto. ' + (s.skills.length ? 'Le skill di quella seduta (' + s.skills.map(function (x) { return LIB.chains[x.chain].label; }).join(', ') + ') non si sostituiscono con un circuito: rimandale alla prossima seduta. ' : '') + 'Non cambia i criteri del tuo piano: il progresso resta quello che hai davvero raggiunto.';
+      }
+    }
+    // controlli sulle scelte attuali
+    if (opts && out.rec) {
+      if (sit !== 'sostituisce' && opts.goal === 'forza') out.cautions.push('Come aggiunta, il circuito di forza duplica il lavoro del piano e carica troppo. Scegli Resistenza o Cardio.');
+      if (opts.minutes > out.maxMin) out.cautions.push('Dura più del massimo consigliato (' + out.maxMin + ' minuti) per questa situazione: più lungo non significa meglio, vuol dire più fatica da smaltire.');
+      if (opts.area !== out.rec.area) out.cautions.push('Zona diversa dal consiglio: quella consigliata lascia riposare i muscoli che il piano ha già usato o userà presto.');
+    }
+    return out;
+  }
+
   const api = {
-    init: init, buildPlan: buildPlan, ladder: ladder, quickCircuit: quickCircuit, circuitAdvice: circuitAdvice, circuitTimeline: circuitTimeline,
+    init: init, buildPlan: buildPlan, ladder: ladder, quickCircuit: quickCircuit, circuitAdvice: circuitAdvice, circuitTimeline: circuitTimeline, circuitFit: circuitFit,
     avail: avail, blockReason: blockReason, scheduleSkills: scheduleSkills, adjacent: adjacent,
     DAYS: DAYS, DAYS_SHORT: DAYS_SHORT, TENDON_SKILLS: TENDON_SKILLS,
     byId: function (id) { return BY[id]; }, chain: function (c) { return CH[c]; },
@@ -849,7 +912,7 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
     ['skill', 'Skill avanzate', 'Verticale, front lever, muscle-up, planche con base di forza.'],
   ];
   var DEF = {
-    step: 0, tab: 'piano', wk: 0, done: {}, adv: {}, checked: 0, notif: false, seen: [], newKeys: [], chk: {}, circ: null, circOpt: { area: 'full', goal: 'resistenza', minutes: 10, n: null }, best: {},
+    step: 0, tab: 'piano', wk: 0, done: {}, adv: {}, checked: 0, notif: false, seen: [], newKeys: [], chk: {}, circ: null, circOpt: { area: 'full', goal: 'resistenza', minutes: 10, n: null }, best: {}, circLog: [], circCtx: { sit: null, replace: null, weekday: null, week: null },
     ladderChain: 'push_h', confirmReset: false,
     p: { name: '', age: '', height: '', weight: '', exp: 'ripartenza', eq: [], limits: [], screen: [], confirmed: false,
          goal: 'salute', minutes: 30, days: [0, 2, 4], weeks: 8, skills: [], starts: {} },
@@ -860,7 +923,7 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
   function load() {
     try {
       var r = JSON.parse(localStorage.getItem(KEY));
-      if (r && r.p) { r.p = Object.assign({}, DEF.p, r.p); r = Object.assign({}, DEF, r); r.notif = false; r.newKeys = []; r.chk = {}; if (r.circ && !r.circ.format) r.circ = null; r.circOpt = Object.assign({}, DEF.circOpt, r.circOpt); r.best = r.best || {}; return r; }
+      if (r && r.p) { r.p = Object.assign({}, DEF.p, r.p); r = Object.assign({}, DEF, r); r.notif = false; r.newKeys = []; r.chk = {}; if (r.circ && !r.circ.format) r.circ = null; r.circOpt = Object.assign({}, DEF.circOpt, r.circOpt); r.best = r.best || {}; r.circLog = r.circLog || []; r.circCtx = Object.assign({}, DEF.circCtx, r.circCtx); return r; }
     } catch (e) {}
     return JSON.parse(JSON.stringify(DEF));
   }
@@ -1030,7 +1093,7 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
         '<details><summary>Riscaldamento · ' + s.warm.min + ' min<\/summary>' + listItems(s.warm.items) + '<\/details>';
       if (s.skills.length) out += '<div><h3>Skill (a freddo, con energia)<\/h3>' + s.skills.map(function (e) { return exRow(e, 'skill'); }).join('') + '<\/div>';
       out += '<div><h3>Forza<\/h3>' + s.strength.map(function (e) { return exRow(e); }).join('') + '<\/div>' + condHtml(s.cond) +
-        '<details><summary>Defaticamento · ' + s.cool.min + ' min<\/summary>' + listItems(s.cool.items) + '<\/details><\/section>';
+        '<details><summary>Defaticamento · ' + s.cool.min + ' min<\/summary>' + listItems(s.cool.items) + '<\/details>' + (wk.deload ? '' : '<button class="btn sec" data-act="addc" data-v="' + s.weekday + '">＋ Circuito dopo questa seduta<\/button>') + '<\/section>';
     });
     out += checkHtml(wk);
     return out + '<\/div>';
@@ -1094,10 +1157,44 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
   var CGOAL = [['resistenza', 'Resistenza'], ['cardio', 'Cardio'], ['forza', 'Forza']];
   function circKey(c) { return [c.goal, c.area, c.minutes].join('-'); }
   function reps(it) { var ex = E.byId(it.exId); return it.reps ? it.reps + (ex.per ? ' /lato' : '') : it.secs + ' s' + (ex.per ? ' /lato' : ''); }
+  var SITS = [['dopo', 'Dopo la seduta', 'Qualche minuto in fondo all\'allenamento di oggi, su una zona diversa.'], ['libero', 'Giorno libero', 'Un giorno senza seduta: ti muovi di più senza stancare ciò che deve recuperare.'], ['sostituisce', 'Al posto di una seduta', 'Quando non hai tempo o attrezzi per la seduta intera: una versione ridotta.']];
+  var AREAN = { full: 'corpo intero', upper: 'parte alta', lower: 'gambe', core: 'core' };
+  function recentCircuits() { var lim = Date.now() - 7 * 864e5; return S.circLog.filter(function (t) { return t > lim; }).length; }
+  function fitCtx() {
+    var c = S.circCtx, today = (new Date().getDay() + 6) % 7, w = c.week != null ? c.week : curWeek(), wd = c.weekday != null ? c.weekday : today;
+    var wk = plan.weeks[Math.min(w, plan.weeks.length - 1)];
+    var sit = c.sit || (wk.sessions.some(function (s) { return s.weekday === wd; }) ? 'dopo' : 'libero');
+    var open = wk.sessions.filter(function (s) { return !S.done[sessionKey(wk.w, s.d)]; });
+    var repl = c.replace != null ? c.replace : (wk.sessions.some(function (s) { return s.weekday === wd; }) ? wd : (open[0] || wk.sessions[0]).weekday);
+    return { sit: sit, weekday: wd, week: wk.w, recent: recentCircuits(), replace: repl, wk: wk, today: today, custom: c.weekday != null };
+  }
+  function fitHtml() {
+    var cx = fitCtx(), f = E.circuitFit(plan, cx, S.circOpt);
+    var out = '<div class="card stack"><h2>Come usarlo con il tuo piano<\/h2>' +
+      '<p class="small">Il piano è la base: è lui che ti fa progredire. Il circuito è <b>un extra<\/b>, non lo sostituisce e non serve farlo ogni giorno. Dimmi come vuoi usarlo e ti guido.<\/p>' +
+      SITS.map(function (x) { return '<button class="opt" data-act="csit" data-v="' + x[0] + '" aria-pressed="' + (cx.sit === x[0]) + '"><span><b>' + x[1] + '<\/b><span class="small mut">' + x[2] + '<\/span><\/span><\/button>'; }).join('');
+    if (cx.sit === 'sostituisce') {
+      out += '<p class="small mut">Quale seduta sostituisci? (settimana ' + (cx.wk.w + 1) + ')<\/p><div class="chips">' + cx.wk.sessions.map(function (s) { return '<button class="chip' + (S.done[sessionKey(cx.wk.w, s.d)] ? ' done' : '') + '" data-act="crepl" data-v="' + s.weekday + '" aria-pressed="' + (cx.replace === s.weekday) + '">' + E.DAYS_SHORT[s.weekday] + '<\/button>'; }).join('') + '<\/div>';
+    }
+    out += '<div class="' + (f.status === 'ok' ? 'note' : 'warn') + '" style="display:block"><b>' + esc(f.headline) + '<\/b>' + (f.why ? '<br>' + esc(f.why) : '') +
+      (f.rec ? '<br><br><b>Consiglio:<\/b> zona ' + AREAN[f.rec.area] + ', obiettivo ' + (f.rec.goal === 'forza' ? 'forza' : f.rec.goal === 'cardio' ? 'cardio' : 'resistenza') + ', ' + f.rec.minutes + ' minuti.' : '') + '<\/div>';
+    if (f.rec) out += '<button class="btn" data-act="cusefit">Usa il consiglio<\/button>';
+    if (cx.custom) out += '<p class="small mut">Stai guardando ' + E.DAYS[cx.weekday] + ', settimana ' + (cx.wk.w + 1) + '. <button class="btn sec" style="min-height:36px;padding:4px 12px" data-act="ctoday">Usa oggi<\/button><\/p>';
+    f.cautions.forEach(function (c) { out += '<div class="warn" style="display:block">' + esc(c) + '<\/div>'; });
+    out += '<p class="small mut">Circuiti extra negli ultimi 7 giorni: <b>' + cx.recent + '<\/b> (massimo consigliato per te: ' + f.limit + ').<\/p>' +
+      '<details><summary>Regole per non esagerare<\/summary><ul class="small" style="margin:6px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:6px">' +
+      '<li><b>Mai più di ' + f.limit + ' circuiti extra a settimana.<\/b> Il piano ha già i suoi giorni di riposo: servono.<\/li>' +
+      '<li><b>Non allenare la stessa zona due giorni di seguito.<\/b> I tendini di gomiti e spalle si adattano più lentamente dei muscoli: la prima cosa che si rompe è la pazienza, non il fiato.<\/li>' +
+      '<li><b>Mai aggiunti nella settimana di scarico.<\/b> Lì il piano chiede riposo.<\/li>' +
+      '<li><b>Dopo una seduta resta breve<\/b> (8-10 minuti) e leggero: se la tecnica cala, hai già fatto abbastanza.<\/li>' +
+      '<li><b>Le skill (front lever, muscle-up, planche) non si fanno nei circuiti.<\/b> Servono energia fresca e pause lunghe.<\/li>' +
+      '<li><b>Fermati<\/b> se senti dolore acuto o alle articolazioni, vertigini o fiato che non torna: nessun record vale una pausa forzata.<\/li><\/ul><\/details><\/div>';
+    return out;
+  }
   function circuitView() {
     var o = S.circOpt, c = S.circ, adv = E.circuitAdvice(profile(), o);
     var out = '<div class="stack"><h1>Circuito rapido<\/h1>' +
-      '<p class="mut small">Un circuito singolo, costruito dalle tue progressioni al tuo livello attuale. Non sostituisce il piano.<\/p>' +
+      '<p class="mut small">Un circuito singolo, costruito dalle tue progressioni al tuo livello attuale.<\/p>' + fitHtml() +
       '<h3>Zona<\/h3><div class="chips">' + AREA.map(function (a) { return '<button class="chip" data-act="carea" data-v="' + a[0] + '" aria-pressed="' + (o.area === a[0]) + '">' + a[1] + '<\/button>'; }).join('') + '<\/div>' +
       '<h3>Obiettivo<\/h3><div class="chips">' + CGOAL.map(function (a) { return '<button class="chip" data-act="cgoal" data-v="' + a[0] + '" aria-pressed="' + (o.goal === a[0]) + '">' + a[1] + '<\/button>'; }).join('') + '<\/div>' +
       '<div class="note" style="display:block"><b>A cosa serve.<\/b> ' + esc(adv.what) + '<br><b>Come usarlo.<\/b> ' + esc(adv.how) + (adv.gentleNote ? '<br><b>Per te.<\/b> ' + esc(adv.gentleNote) : '') + '<\/div>' +
@@ -1114,7 +1211,7 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
           var ex = E.byId(it.exId);
           return '<div class="ex"><div class="nm"><span>' + esc(ex.name) + '<\/span><span class="rx">' + reps(it) + '<\/span><\/div>' + stepsHtml(ex) + '<\/div>';
         }).join('') +
-        '<button class="btn full" data-act="tstart">▶ Avvia il timer<\/button><button class="btn sec" data-act="exportc">Esporta<\/button><\/div>';
+        '<button class="btn full" data-act="tstart">▶ Avvia il timer<\/button><div class="row"><button class="btn sec" data-act="clog">Segna come fatto<\/button><button class="btn sec" data-act="exportc">Esporta<\/button><\/div><\/div>';
     }
     return out + '<\/div>';
   }
@@ -1151,7 +1248,7 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
     tUpdate();
   }
   function tFinish() {
-    T.done = true; clearInterval(tTick);
+    T.done = true; clearInterval(tTick); S.circLog.push(Date.now()); S.circLog = S.circLog.slice(-30); save();
     var c = T.c; if (c.format === 'amrap' && T.rounds > 0) { var k = circKey(c); T.prev = S.best[k] || 0; if (T.rounds > T.prev) S.best[k] = T.rounds; save(); }
     beep(988, 0.4); buzz([200, 80, 200, 80, 300]);
     try { if (wake) wake.release(); } catch (e) {} wake = null;
@@ -1312,6 +1409,12 @@ pre.lic{white-space:pre-wrap;font:.78rem/1.45 ui-monospace,Menlo,monospace;backg
       else if (a === 'cmin') { S.circOpt.minutes = +v; S.circOpt.n = null; }
       else if (a === 'cn') S.circOpt.n = +v;
       else if (a === 'tstart') { timerStart(); }
+      else if (a === 'csit') { S.circCtx.sit = v; }
+      else if (a === 'crepl') { S.circCtx.replace = +v; }
+      else if (a === 'ctoday') { S.circCtx.weekday = null; S.circCtx.week = null; }
+      else if (a === 'cusefit') { var f2 = E.circuitFit(plan, fitCtx(), S.circOpt); if (f2.rec) { S.circOpt.area = f2.rec.area; S.circOpt.goal = f2.rec.goal; S.circOpt.minutes = f2.rec.minutes; S.circOpt.n = null; S.circ = E.quickCircuit(profile(), S.circOpt); } }
+      else if (a === 'clog') { S.circLog.push(Date.now()); S.circLog = S.circLog.slice(-30); toast('Circuito registrato'); }
+      else if (a === 'addc') { S.circCtx = { sit: 'dopo', replace: null, weekday: +v, week: S.wk }; S.tab = 'circuito'; top(); }
       else if (a === 'circ') S.circ = E.quickCircuit(profile(), S.circOpt);
       else if (a === 'lc') S.ladderChain = v;
       else if (a === 'reset1') S.confirmReset = true;
